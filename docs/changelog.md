@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.0] - 2026-04-20
+
+### Added
+- Módulo Stock: aggregate `StockMovement`, read model `StockBalance`, enum `MovementType`
+- Domain events: `StockMovementRegistered`, `StockMovementReversed`, `StockBelowMinimumDetected`
+- Ports: `StockMovementRepositoryPort`, `StockBalanceRepositoryPort`, `ProductVariantRepositoryPort`
+- Port compartilhado `IdGeneratorPort` em `Domain/Shared/Ports` com implementação `UuidV4Generator`
+- Use cases: `RecordEntry`, `RecordExit`, `CancelMovement`, `QueryStockBalance`, `ListMovementsByVariant`
+- Migration `stock_movements` com FK para `product_variants` e auto-referência para REVERSAL
+- API REST: 5 novos endpoints de estoque
+- Frontend: Alpine.js + Blade com páginas de Produtos, Detalhe de Produto e Dashboard de Estoque
+- Camada `resources/js/api/` (http-client, product-api, stock-api) — única camada com conhecimento de fetch/URLs
+
+### Changed
+- Use cases `RegisterProduct` e `AddProductVariant` passaram a injetar `IdGeneratorPort` (DIP)
+- Use cases de Stock gerados já com `IdGeneratorPort` em vez de `Uuid::uuid4()` direto
+
 ## [0.1.0] - 2026-04-20
 
 ### Added

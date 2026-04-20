@@ -4,6 +4,7 @@ namespace App\Application\Product\AddProductVariant;
 
 use App\Domain\Product\Ports\ProductRepositoryPort;
 use App\Domain\Product\ProductVariant;
+use App\Domain\Shared\Ports\IdGeneratorPort;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
 
@@ -11,6 +12,7 @@ class AddProductVariantUseCase
 {
     public function __construct(
         private ProductRepositoryPort $repository,
+        private IdGeneratorPort       $ids,
     ) {}
 
     public function execute(AddProductVariantDTO $dto): ProductVariant
@@ -22,7 +24,7 @@ class AddProductVariantUseCase
         }
 
         $variant = new ProductVariant(
-            id:           Uuid::uuid4(),
+            id:           $this->ids->generate(),
             productId:    $product->getId(),
             sku:          $dto->sku,
             unit:         $dto->unit,

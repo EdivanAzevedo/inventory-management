@@ -73,3 +73,63 @@ Base URL: `http://localhost:8000/api`
 `DELETE /products/{productId}/variants/{variantId}`
 
 **Resposta 204** — sem corpo.
+
+---
+
+## Estoque
+
+### Registrar entrada
+`POST /stock/entries`
+
+**Body**
+```json
+{ "variant_id": "uuid", "quantity": 50, "reason": "Compra NF-001" }
+```
+**Resposta 201** — objeto da movimentação criada.
+
+### Registrar saída
+`POST /stock/exits`
+
+**Body**
+```json
+{ "variant_id": "uuid", "quantity": 10, "reason": "Venda pedido #123" }
+```
+**Resposta 201** — objeto da movimentação criada.
+**Resposta 500** — se saldo insuficiente (`DomainException`).
+
+### Estornar movimentação
+`POST /stock/movements/{id}/cancel`
+
+**Body**
+```json
+{ "reason": "Lançamento incorreto" }
+```
+**Resposta 201** — objeto do estorno (`type: REVERSAL`).
+
+### Consultar saldo
+`GET /stock/balance/{variantId}`
+
+**Resposta 200**
+```json
+{ "data": { "variant_id": "uuid", "quantity": 40 } }
+```
+
+### Listar movimentações da variante
+`GET /stock/movements/{variantId}`
+
+**Resposta 200**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "variant_id": "uuid",
+      "type": "ENTRY",
+      "quantity": 50,
+      "reason": "Compra NF-001",
+      "referenced_movement_id": null,
+      "created_at": "2026-04-20 21:00:00"
+    }
+  ]
+}
+```

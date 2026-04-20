@@ -14,7 +14,8 @@
       "Bash(mysql -u root -h 127.0.0.1 inventory_management -e \"DROP TABLE IF EXISTS product_variants; DROP TABLE IF EXISTS products;\")",
       "Bash(code --list-extensions)",
       "Bash(npm install *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(php -r \"require '/home/edivan/Documentos/GitHub/inventory-management/src/vendor/autoload.php';\")"
     ]
   }
 }

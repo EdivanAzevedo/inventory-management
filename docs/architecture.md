@@ -25,6 +25,26 @@ HTTP Request
         → EloquentRepository (Infrastructure/Persistence)
 ```
 
+## IdGeneratorPort — geração de ID como Port
+
+A geração de UUIDs é abstraída atrás de uma interface no domínio compartilhado:
+
+```
+Domain/Shared/Ports/IdGeneratorPort       ← interface pura
+Infrastructure/Identity/UuidV4Generator   ← implementação com Ramsey UUID
+```
+
+Use cases que criam agregados recebem `IdGeneratorPort` via construtor. A lógica de geração nunca vaza para o domínio e pode ser substituída (ex.: ULID, Snowflake) alterando apenas o binding no `DomainServiceProvider`.
+
 ## Troca de frontend
 
-O backend expõe JSON via `ProductResource`. Controllers retornam `JsonResponse` ou `ResourceCollection`, desacoplados do Blade. Para migrar para Vue/React/Inertia, basta criar novos controllers ou adaptar as respostas sem tocar em Domain ou Application.
+O backend expõe JSON via Resources (`ProductResource`, `StockMovementResource`). Controllers retornam `JsonResponse` ou `ResourceCollection`, desacoplados da camada de apresentação.
+
+O frontend atual usa **Alpine.js + Blade** com arquitetura em duas camadas:
+
+| Camada | Localização | Responsabilidade |
+|---|---|---|
+| API Adapters | `resources/js/api/` | Única camada que conhece `fetch` e as URLs da API |
+| Components | `resources/js/components/` | Alpine.js — camada de apresentação, trocável |
+
+Para migrar para Vue/React, reescreve-se apenas `resources/js/components/`. A camada `api/` permanece intacta.
