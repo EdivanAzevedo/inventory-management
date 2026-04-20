@@ -11,30 +11,27 @@ Sistema de gerenciamento de estoque com controle de produtos, variações (SKUs)
 - **Frontend:** Blade (substituível por outro framework sem alteração no backend)
 - **Testes:** PHPUnit
 
-## Quick Start
+## Instalação
 
 ```bash
 git clone https://github.com/EdivanAzevedo/inventory-management.git
 cd inventory-management/src
-
-composer install
-cp .env.example .env
-# Configure DB_DATABASE, DB_USERNAME, DB_PASSWORD no .env
-
+composer install && npm install
+cp .env.example .env          # configure DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD
 php artisan key:generate
 php artisan migrate
-php artisan serve
+composer run dev              # sobe Laravel :8000, Vite :5173, queue e logs
 ```
 
-## Documentation
+## Documentação
 
 - [Arquitetura](docs/architecture.md)
-- [Instalação](docs/installation.md)
+- [Instalação detalhada](docs/installation.md)
 - [Módulos](docs/modules.md)
 - [API](docs/api.md)
 - [Banco de dados](docs/database.md)
 - [Changelog](docs/changelog.md)
 
-## License
+## Licença
 
 MIT
