@@ -6,6 +6,7 @@ use App\Application\Product\AddProductVariant\AddProductVariantDTO;
 use App\Application\Product\AddProductVariant\AddProductVariantUseCase;
 use App\Application\Product\DeactivateProduct\DeactivateProductUseCase;
 use App\Application\Product\GetProduct\GetProductUseCase;
+use App\Application\Product\ListProducts\ListProductsUseCase;
 use App\Application\Product\RegisterProduct\RegisterProductDTO;
 use App\Application\Product\RegisterProduct\RegisterProductUseCase;
 use App\Application\Product\RegisterProduct\RegisterVariantDTO;
@@ -28,13 +29,14 @@ class ProductController extends Controller
         private UpdateProductUseCase        $update,
         private DeactivateProductUseCase    $deactivate,
         private GetProductUseCase           $get,
+        private ListProductsUseCase         $list,
         private AddProductVariantUseCase    $addVariant,
         private RemoveProductVariantUseCase $removeVariant,
     ) {}
 
     public function index(): AnonymousResourceCollection
     {
-        return ProductResource::collection($this->get->list());
+        return ProductResource::collection($this->list->execute());
     }
 
     public function show(string $id): ProductResource

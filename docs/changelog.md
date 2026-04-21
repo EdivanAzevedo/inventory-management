@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.0] - 2026-04-20
+
+### Added
+- Alerta assíncrono de estoque mínimo: `CheckMinimumStockHandler` (Application) processa `StockBelowMinimumDetected` via fila `stock-alerts`
+- Port `NotificationPort` em `Domain/Shared/Ports` com implementação `LogNotificationAdapter` em Infrastructure
+- 5 testes de feature em `StockAlertTest`: disparo do evento, ausência de evento, cancelamento de entrada, configuração do handler e delegação ao `NotificationPort`
+- Registro do listener em `AppServiceProvider`: `Event::listen(StockBelowMinimumDetected::class, CheckMinimumStockHandler::class)`
+
+### Changed
+- `CancelMovementUseCase`: ao estornar uma movimentação do tipo `ENTRY`, agora verifica se o saldo resultante fica abaixo do mínimo e dispara `StockBelowMinimumDetected`
+- `docs/architecture.md`: documentado o fluxo assíncrono de alerta e seção de dívida técnica (DT-01 a DT-06)
+- `docs/modules.md`: `CheckMinimumStockHandler`, `NotificationPort` e `LogNotificationAdapter` adicionados; descrições de `CancelMovement` e regras de negócio atualizadas
+
+### Debt
+- **DT-01** `CheckMinimumStockHandler` implementa `ShouldQueue` na Application layer (DIP/SRP)
+- **DT-02** Use cases `RecordExit` e `CancelMovement` acoplados a `Illuminate\Contracts\Events\Dispatcher` (DIP)
+- **DT-03** Método `checkMinimumStock` duplicado em `RecordExitUseCase` e `CancelMovementUseCase` (DRY/SRP)
+- **DT-04** Comparação `$newBalance < minimumStock` na Application layer em vez de `ProductVariant::isBelowMinimum()`
+- **DT-05** FQCN `\Ramsey\Uuid\UuidInterface` sem import em `CancelMovementUseCase:56`
+- **DT-06** Strings `'ENTRY'`/`'EXIT'`/`'REVERSAL'` hardcoded no SQL de `EloquentStockBalanceRepository`
+
 ## [0.2.0] - 2026-04-20
 
 ### Added

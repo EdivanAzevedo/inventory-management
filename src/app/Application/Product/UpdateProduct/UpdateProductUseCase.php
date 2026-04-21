@@ -2,11 +2,11 @@
 
 namespace App\Application\Product\UpdateProduct;
 
+use App\Domain\Product\Exceptions\ProductNotFoundException;
 use App\Domain\Product\Ports\ProductRepositoryPort;
 use App\Domain\Product\Product;
 use App\Domain\Product\ProductType;
 use Ramsey\Uuid\Uuid;
-use RuntimeException;
 
 class UpdateProductUseCase
 {
@@ -19,7 +19,7 @@ class UpdateProductUseCase
         $product = $this->repository->findById(Uuid::fromString($dto->id));
 
         if ($product === null) {
-            throw new RuntimeException("Produto não encontrado: {$dto->id}");
+            throw new ProductNotFoundException($dto->id);
         }
 
         $product->update($dto->name, ProductType::from($dto->type), $dto->description);

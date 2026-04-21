@@ -2,6 +2,7 @@
 
 namespace App\Application\Stock\RecordExit;
 
+use App\Domain\Product\Exceptions\VariantNotFoundException;
 use App\Domain\Product\Ports\ProductVariantRepositoryPort;
 use App\Domain\Shared\Ports\IdGeneratorPort;
 use App\Domain\Stock\Events\StockBelowMinimumDetected;
@@ -25,6 +26,10 @@ class RecordExitUseCase
     public function execute(RecordExitDTO $dto): StockMovement
     {
         $variantId = Uuid::fromString($dto->variantId);
+
+        if ($this->variants->findById($variantId) === null) {
+            throw new VariantNotFoundException($dto->variantId);
+        }
 
         $balance  = $this->balances->getBalanceByVariantId($variantId);
         $movement = StockMovement::createExit(

@@ -8,7 +8,7 @@ Sistema de gerenciamento de estoque com controle de produtos, variações (SKUs)
 - **Backend:** PHP 8.3 + Laravel 13.5
 - **Banco de dados:** MySQL 8.0
 - **Arquitetura:** Hexagonal / Clean Architecture (Domain · Application · Infrastructure)
-- **Frontend:** Blade (substituível por outro framework sem alteração no backend)
+- **Frontend:** Blade + Alpine.js (substituível por outro framework sem alteração no backend)
 - **Testes:** PHPUnit
 
 ## Instalação
@@ -19,8 +19,8 @@ cd inventory-management/src
 composer install && npm install
 cp .env.example .env          # configure DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD
 php artisan key:generate
-php artisan migrate
-composer run dev              # sobe Laravel :8000, Vite :5173, queue e logs
+php artisan migrate --seed    # --seed opcional: popula produtos e movimentações de exemplo
+composer run dev              # sobe Laravel :8000, Vite :5173, queue worker e logs
 ```
 
 ## Documentação

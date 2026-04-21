@@ -2,9 +2,9 @@
 
 namespace App\Application\Product\RemoveProductVariant;
 
+use App\Domain\Product\Exceptions\ProductNotFoundException;
 use App\Domain\Product\Ports\ProductRepositoryPort;
 use Ramsey\Uuid\Uuid;
-use RuntimeException;
 
 class RemoveProductVariantUseCase
 {
@@ -17,7 +17,7 @@ class RemoveProductVariantUseCase
         $product = $this->repository->findById(Uuid::fromString($productId));
 
         if ($product === null) {
-            throw new RuntimeException("Produto não encontrado: {$productId}");
+            throw new ProductNotFoundException($productId);
         }
 
         $product->removeVariant(Uuid::fromString($variantId));

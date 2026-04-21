@@ -14,7 +14,7 @@ class EloquentStockMovementRepository implements StockMovementRepositoryPort
 {
     public function save(StockMovement $movement): void
     {
-        StockMovementModel::updateOrCreate(
+        StockMovementModel::firstOrCreate(
             ['id' => $movement->getId()->toString()],
             [
                 'variant_id'             => $movement->getVariantId()->toString(),
@@ -53,7 +53,7 @@ class EloquentStockMovementRepository implements StockMovementRepositoryPort
             referencedMovementId: $model->referenced_movement_id
                 ? Uuid::fromString($model->referenced_movement_id)
                 : null,
-            createdAt: new DateTimeImmutable($model->created_at),
+            createdAt: DateTimeImmutable::createFromInterface($model->created_at),
         );
     }
 }

@@ -61,11 +61,12 @@ Controla movimentações de estoque (entradas, saídas e estornos) com rastreabi
 
 ### Use Cases
 
-| Use Case | Descrição |
+| Use Case / Handler | Descrição |
 |---|---|
 | `RecordEntryUseCase` | Registra entrada; dispara `StockMovementRegistered` |
-| `RecordExitUseCase` | Registra saída; valida saldo; dispara `StockBelowMinimumDetected` se necessário |
-| `CancelMovementUseCase` | Cria `REVERSAL` compensatório; valida que saldo não fica negativo |
+| `RecordExitUseCase` | Registra saída; valida saldo; dispara `StockBelowMinimumDetected` se `novoSaldo < minimumStock` |
+| `CancelMovementUseCase` | Cria `REVERSAL` compensatório; valida que saldo não fica negativo; dispara `StockBelowMinimumDetected` se estorno de entrada reduzir saldo abaixo do mínimo |
+| `CheckMinimumStockHandler` | Handler assíncrono do evento `StockBelowMinimumDetected`; delega para `NotificationPort` |
 | `QueryStockBalanceUseCase` | Retorna saldo atual por variante |
 | `ListMovementsByVariantUseCase` | Lista histórico de movimentações por variante |
 
@@ -74,7 +75,8 @@ Controla movimentações de estoque (entradas, saídas e estornos) com rastreabi
 - Saída só é registrada se `saldo >= quantidade solicitada`
 - `StockMovement` nunca é deletado; cancelamentos geram um novo movimento do tipo `REVERSAL`
 - Estorno de uma entrada valida que o saldo resultante não ficará negativo
-- `StockBelowMinimumDetected` é disparado após saída quando `novoSaldo < minimumStock`
+- `StockBelowMinimumDetected` é disparado após saída **ou** estorno de entrada quando `novoSaldo < minimumStock`
+- O evento é processado de forma assíncrona pela fila `stock-alerts` via `CheckMinimumStockHandler`
 
 ### Exemplo de uso
 
@@ -106,6 +108,8 @@ Utilitários compartilhados entre módulos.
 | Classe | Tipo | Descrição |
 |---|---|---|
 | `IdGeneratorPort` | Interface (Port) | Contrato de geração de ID (`Domain/Shared/Ports`) |
-| `UuidV4Generator` | Adapter | Implementação com Ramsey UUID v4 (`Infrastructure/Identity`) |
+| `NotificationPort` | Interface (Port) | Contrato de envio de alertas de estoque (`Domain/Shared/Ports`) |
+| `UuidV4Generator` | Adapter | Implementação de `IdGeneratorPort` com Ramsey UUID v4 (`Infrastructure/Identity`) |
+| `LogNotificationAdapter` | Adapter | Implementação de `NotificationPort` que grava `Log::warning` (`Infrastructure/Notification`) |
 
-Todos os use cases que criam agregados recebem `IdGeneratorPort` via injeção de dependência.
+Todos os use cases que criam agregados recebem `IdGeneratorPort` via injeção de dependência. O `CheckMinimumStockHandler` recebe `NotificationPort`, permitindo trocar o mecanismo de notificação (e-mail, webhook, etc.) alterando apenas o binding no `DomainServiceProvider`.

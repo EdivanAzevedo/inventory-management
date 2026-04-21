@@ -7,7 +7,9 @@ use App\Domain\Product\Ports\ProductVariantRepositoryPort;
 use App\Domain\Shared\Ports\IdGeneratorPort;
 use App\Domain\Stock\Ports\StockBalanceRepositoryPort;
 use App\Domain\Stock\Ports\StockMovementRepositoryPort;
+use App\Domain\Shared\Ports\NotificationPort;
 use App\Infrastructure\Identity\UuidV4Generator;
+use App\Infrastructure\Notification\LogNotificationAdapter;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentProductRepository;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentProductVariantRepository;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentStockBalanceRepository;
@@ -19,6 +21,7 @@ class DomainServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(IdGeneratorPort::class, UuidV4Generator::class);
+        $this->app->bind(NotificationPort::class, LogNotificationAdapter::class);
 
         $this->app->bind(ProductRepositoryPort::class, EloquentProductRepository::class);
         $this->app->bind(ProductVariantRepositoryPort::class, EloquentProductVariantRepository::class);

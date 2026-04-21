@@ -13,6 +13,4 @@ interface ProductRepositoryPort
 
     /** @return Product[] */
     public function findAll(): array;
-
-    public function deactivate(UuidInterface $id): void;
 }

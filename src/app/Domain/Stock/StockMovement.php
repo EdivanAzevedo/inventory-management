@@ -14,14 +14,18 @@ class StockMovement
     private array $domainEvents = [];
 
     public function __construct(
-        private UuidInterface  $id,
-        private UuidInterface  $variantId,
-        private MovementType   $type,
-        private int            $quantity,
-        private ?string        $reason = null,
-        private ?UuidInterface $referencedMovementId = null,
-        private DateTimeImmutable $createdAt = new DateTimeImmutable(),
-    ) {}
+        private UuidInterface     $id,
+        private UuidInterface     $variantId,
+        private MovementType      $type,
+        private int               $quantity,
+        private ?string           $reason,
+        private ?UuidInterface    $referencedMovementId,
+        private DateTimeImmutable $createdAt,
+    ) {
+        if ($quantity <= 0) {
+            throw new DomainException("Quantidade deve ser maior que zero, recebido: {$quantity}.");
+        }
+    }
 
     public static function createEntry(
         UuidInterface $id,
@@ -29,7 +33,7 @@ class StockMovement
         int $quantity,
         ?string $reason = null,
     ): self {
-        $movement = new self($id, $variantId, MovementType::ENTRY, $quantity, $reason);
+        $movement = new self($id, $variantId, MovementType::ENTRY, $quantity, $reason, null, new DateTimeImmutable());
         $movement->domainEvents[] = new StockMovementRegistered($id, $variantId);
 
         return $movement;
@@ -48,7 +52,7 @@ class StockMovement
             );
         }
 
-        $movement = new self($id, $variantId, MovementType::EXIT, $quantity, $reason);
+        $movement = new self($id, $variantId, MovementType::EXIT, $quantity, $reason, null, new DateTimeImmutable());
         $movement->domainEvents[] = new StockMovementRegistered($id, $variantId);
 
         return $movement;
@@ -65,22 +69,23 @@ class StockMovement
         }
 
         // Reversing an ENTRY reduces stock; validate balance won't go negative.
-        if ($original->getType() === MovementType::ENTRY && $currentBalance < $original->quantity) {
+        if ($original->getType() === MovementType::ENTRY && $currentBalance < $original->getQuantity()) {
             throw new DomainException(
-                "Saldo insuficiente para estornar entrada: disponível {$currentBalance}, necessário {$original->quantity}."
+                "Saldo insuficiente para estornar entrada: disponível {$currentBalance}, necessário {$original->getQuantity()}."
             );
         }
 
         $movement = new self(
             id:                   $id,
-            variantId:            $original->variantId,
+            variantId:            $original->getVariantId(),
             type:                 MovementType::REVERSAL,
-            quantity:             $original->quantity,
+            quantity:             $original->getQuantity(),
             reason:               $reason,
-            referencedMovementId: $original->id,
+            referencedMovementId: $original->getId(),
+            createdAt:            new DateTimeImmutable(),
         );
 
-        $movement->domainEvents[] = new StockMovementReversed($id, $original->id, $original->variantId);
+        $movement->domainEvents[] = new StockMovementReversed($id, $original->getId(), $original->getVariantId());
 
         return $movement;
     }

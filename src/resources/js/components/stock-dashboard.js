@@ -5,6 +5,7 @@ export function stockDashboard() {
         tab:        'entry',
         toast:      null,
         submitting: false,
+        variants:   [],
 
         entryForm:  { variant_id: '', quantity: 1, reason: '' },
         exitForm:   { variant_id: '', quantity: 1, reason: '' },
@@ -21,12 +22,27 @@ export function stockDashboard() {
             REVERSAL: { label: 'Estorno',  class: 'bg-amber-100 text-amber-700' },
         },
 
+        async init() {
+            try {
+                this.variants = await stockApi.listVariants()
+            } catch (e) {
+                this.showToast('Erro ao carregar variantes: ' + e.message, 'error')
+            }
+        },
+
+        onVariantSelected(formKey) {
+            // auto-preenche o lookupVariantId ao selecionar no formulário
+            const id = this[formKey].variant_id
+            if (id) this.lookupVariantId = id
+        },
+
         async recordEntry() {
             this.submitting = true
             try {
                 await stockApi.recordEntry(this.entryForm)
                 this.showToast('Entrada registrada!', 'success')
                 this.entryForm = { variant_id: '', quantity: 1, reason: '' }
+                if (this.lookupVariantId) await this.lookup()
             } catch (e) {
                 this.showToast(e.message, 'error')
             } finally {
@@ -40,6 +56,7 @@ export function stockDashboard() {
                 await stockApi.recordExit(this.exitForm)
                 this.showToast('Saída registrada!', 'success')
                 this.exitForm = { variant_id: '', quantity: 1, reason: '' }
+                if (this.lookupVariantId) await this.lookup()
             } catch (e) {
                 this.showToast(e.message, 'error')
             } finally {
@@ -53,6 +70,7 @@ export function stockDashboard() {
                 await stockApi.cancelMovement(this.cancelForm.movement_id, this.cancelForm.reason)
                 this.showToast('Estorno registrado!', 'success')
                 this.cancelForm = { movement_id: '', reason: '' }
+                if (this.lookupVariantId) await this.lookup()
             } catch (e) {
                 this.showToast(e.message, 'error')
             } finally {

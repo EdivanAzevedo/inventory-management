@@ -3,6 +3,7 @@
 namespace App\Domain\Product;
 
 use App\Domain\Product\Events\ProductDeactivated;
+use App\Domain\Product\Exceptions\VariantNotFoundException;
 use Ramsey\Uuid\UuidInterface;
 
 class Product
@@ -66,6 +67,8 @@ class Product
                 return;
             }
         }
+
+        throw new VariantNotFoundException($variantId->toString());
     }
 
     public function getId(): UuidInterface    { return $this->id; }

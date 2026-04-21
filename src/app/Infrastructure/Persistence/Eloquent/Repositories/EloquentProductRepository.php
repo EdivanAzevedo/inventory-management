@@ -58,11 +58,6 @@ class EloquentProductRepository implements ProductRepositoryPort
             ->all();
     }
 
-    public function deactivate(UuidInterface $id): void
-    {
-        ProductModel::find($id->toString())?->delete();
-    }
-
     private function toDomain(ProductModel $model): Product
     {
         $product = Product::reconstitute(

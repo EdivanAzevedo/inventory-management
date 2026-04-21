@@ -2,11 +2,11 @@
 
 namespace App\Application\Product\AddProductVariant;
 
+use App\Domain\Product\Exceptions\ProductNotFoundException;
 use App\Domain\Product\Ports\ProductRepositoryPort;
 use App\Domain\Product\ProductVariant;
 use App\Domain\Shared\Ports\IdGeneratorPort;
 use Ramsey\Uuid\Uuid;
-use RuntimeException;
 
 class AddProductVariantUseCase
 {
@@ -20,7 +20,7 @@ class AddProductVariantUseCase
         $product = $this->repository->findById(Uuid::fromString($dto->productId));
 
         if ($product === null) {
-            throw new RuntimeException("Produto não encontrado: {$dto->productId}");
+            throw new ProductNotFoundException($dto->productId);
         }
 
         $variant = new ProductVariant(

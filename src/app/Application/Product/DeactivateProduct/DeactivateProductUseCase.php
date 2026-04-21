@@ -2,10 +2,10 @@
 
 namespace App\Application\Product\DeactivateProduct;
 
+use App\Domain\Product\Exceptions\ProductNotFoundException;
 use App\Domain\Product\Ports\ProductRepositoryPort;
 use Illuminate\Contracts\Events\Dispatcher;
 use Ramsey\Uuid\Uuid;
-use RuntimeException;
 
 class DeactivateProductUseCase
 {
@@ -19,7 +19,7 @@ class DeactivateProductUseCase
         $product = $this->repository->findById(Uuid::fromString($id));
 
         if ($product === null) {
-            throw new RuntimeException("Produto não encontrado: {$id}");
+            throw new ProductNotFoundException($id);
         }
 
         $product->deactivate();

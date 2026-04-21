@@ -2,10 +2,10 @@
 
 namespace App\Application\Product\GetProduct;
 
+use App\Domain\Product\Exceptions\ProductNotFoundException;
 use App\Domain\Product\Ports\ProductRepositoryPort;
 use App\Domain\Product\Product;
 use Ramsey\Uuid\Uuid;
-use RuntimeException;
 
 class GetProductUseCase
 {
@@ -18,15 +18,9 @@ class GetProductUseCase
         $product = $this->repository->findById(Uuid::fromString($id));
 
         if ($product === null) {
-            throw new RuntimeException("Produto não encontrado: {$id}");
+            throw new ProductNotFoundException($id);
         }
 
         return $product;
-    }
-
-    /** @return Product[] */
-    public function list(): array
-    {
-        return $this->repository->findAll();
     }
 }
