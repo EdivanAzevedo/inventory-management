@@ -22,9 +22,7 @@ class EloquentProductRepository implements ProductRepositoryPort
             'description' => $product->getDescription(),
         ]);
 
-        if (! $product->isActive()) {
-            $model->deleted_at = now();
-        }
+        $model->deleted_at = $product->isActive() ? null : now();
 
         $model->save();
 
@@ -45,7 +43,7 @@ class EloquentProductRepository implements ProductRepositoryPort
 
     public function findById(UuidInterface $id): ?Product
     {
-        $model = ProductModel::with('variants')->find($id->toString());
+        $model = ProductModel::withTrashed()->with('variants')->find($id->toString());
 
         return $model ? $this->toDomain($model) : null;
     }
@@ -53,6 +51,15 @@ class EloquentProductRepository implements ProductRepositoryPort
     public function findAll(): array
     {
         return ProductModel::with('variants')
+            ->get()
+            ->map(fn ($m) => $this->toDomain($m))
+            ->all();
+    }
+
+    public function findInactive(): array
+    {
+        return ProductModel::onlyTrashed()
+            ->with('variants')
             ->get()
             ->map(fn ($m) => $this->toDomain($m))
             ->all();

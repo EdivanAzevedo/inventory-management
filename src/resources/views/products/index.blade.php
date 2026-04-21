@@ -14,9 +14,27 @@
     {{-- Header --}}
     <div class="flex items-center justify-between mb-6">
         <p class="text-slate-500 text-sm" x-text="products.length + ' produto(s) encontrado(s)'"></p>
-        <button @click="showForm = !showForm"
+        <button x-show="activeTab === 'active'" @click="showForm = !showForm"
                 class="bg-slate-900 text-white text-sm px-4 py-2 rounded-lg hover:bg-slate-700 transition">
             + Novo Produto
+        </button>
+    </div>
+
+    {{-- Tabs --}}
+    <div class="flex gap-1 mb-5 border-b border-slate-200">
+        <button @click="switchTab('active')"
+                :class="activeTab === 'active'
+                    ? 'border-b-2 border-slate-900 text-slate-900 font-medium'
+                    : 'text-slate-400 hover:text-slate-600'"
+                class="px-4 py-2 text-sm transition">
+            Ativos
+        </button>
+        <button @click="switchTab('inactive')"
+                :class="activeTab === 'inactive'
+                    ? 'border-b-2 border-slate-900 text-slate-900 font-medium'
+                    : 'text-slate-400 hover:text-slate-600'"
+                class="px-4 py-2 text-sm transition">
+            Inativos
         </button>
     </div>
 
@@ -122,14 +140,20 @@
                                     class="text-slate-600 hover:text-slate-900 underline text-xs">Detalhes</button>
                             <button x-show="p.active" @click="deactivate(p.id, p.name)"
                                     class="text-red-500 hover:text-red-700 underline text-xs">Desativar</button>
+                            <button x-show="!p.active" @click="reactivate(p.id, p.name)"
+                                    class="text-emerald-600 hover:text-emerald-800 underline text-xs">Reativar</button>
                         </td>
                     </tr>
                 </template>
             </tbody>
         </table>
-        <div x-show="!loading && !products.length"
-             class="p-10 text-center text-slate-400 text-sm">
-            Nenhum produto cadastrado. Clique em <strong>+ Novo Produto</strong> para começar.
+        <div x-show="!loading && !products.length" class="p-10 text-center text-slate-400 text-sm">
+            <template x-if="activeTab === 'active'">
+                <span>Nenhum produto ativo. Clique em <strong>+ Novo Produto</strong> para começar.</span>
+            </template>
+            <template x-if="activeTab === 'inactive'">
+                <span>Nenhum produto inativo.</span>
+            </template>
         </div>
     </div>
 </div>

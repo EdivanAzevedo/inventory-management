@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.4.0] - 2026-04-20
+
+### Added
+- Domain event `ProductReactivated` (simétrico a `ProductDeactivated`)
+- Método `Product::reactivate()` na entidade de domínio
+- Port `ProductRepositoryPort::findInactive()` — contrato para listar produtos inativos
+- Use case `ListInactiveProductsUseCase` — lista todos os produtos com soft delete ativo
+- Use case `ReactivateProductUseCase` — restaura produto inativo e dispara `ProductReactivated`
+- Endpoint `GET /api/products/inactive` — retorna produtos inativos
+- Endpoint `POST /api/products/{id}/reactivate` — reativa produto pelo ID
+- Frontend: abas "Ativos / Inativos" na listagem de produtos
+- Frontend: botão "Reativar" exibido para produtos inativos
+- `productApi.listInactive()` e `productApi.reactivate()` em `product-api.js`
+
+### Changed
+- `EloquentProductRepository::findById()` passa a usar `withTrashed()` para localizar produtos inativos durante a reativação
+- `EloquentProductRepository::save()` corrigido: `deleted_at` é definido como `null` ao reativar (antes só era setado ao desativar)
+- README reescrito seguindo estrutura do `Claude.md`
+- `docs/api.md`: dois novos endpoints documentados
+- `docs/modules.md`: `ProductReactivated`, `ListInactiveProductsUseCase` e `ReactivateProductUseCase` adicionados
+
 ## [0.3.0] - 2026-04-20
 
 ### Added

@@ -53,10 +53,20 @@ Base URL: `http://localhost:8000/api`
 ```
 **Resposta 200** — objeto atualizado.
 
+### Listar produtos inativos
+`GET /products/inactive`
+
+**Resposta 200** — mesma estrutura de `GET /products`, retorna apenas produtos com `active: false`.
+
 ### Desativar produto
 `DELETE /products/{id}`
 
 **Resposta 204** — sem corpo.
+
+### Reativar produto
+`POST /products/{id}/reactivate`
+
+**Resposta 204** — sem corpo. Restaura o produto (limpa `deleted_at`) e dispara `ProductReactivated`.
 
 ## Variações
 

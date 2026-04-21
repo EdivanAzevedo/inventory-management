@@ -21,6 +21,7 @@ export function productList() {
         submitting:  false,
         toast:       null,
         form:        emptyForm(),
+        activeTab:   'active',
         TYPES,
 
         async init() {
@@ -30,12 +31,23 @@ export function productList() {
         async load() {
             this.loading = true
             try {
-                this.products = await productApi.list()
+                if (this.activeTab === 'active') {
+                    this.products = await productApi.list()
+                } else {
+                    this.products = await productApi.listInactive()
+                }
             } catch (e) {
                 this.showToast(e.message, 'error')
             } finally {
                 this.loading = false
             }
+        },
+
+        async switchTab(tab) {
+            if (this.activeTab === tab) return
+            this.activeTab = tab
+            this.showForm = false
+            await this.load()
         },
 
         addVariantRow() {
@@ -66,6 +78,17 @@ export function productList() {
             try {
                 await productApi.deactivate(id)
                 this.showToast('Produto desativado.', 'success')
+                await this.load()
+            } catch (e) {
+                this.showToast(e.message, 'error')
+            }
+        },
+
+        async reactivate(id, name) {
+            if (!confirm(`Reativar "${name}"?`)) return
+            try {
+                await productApi.reactivate(id)
+                this.showToast('Produto reativado com sucesso!', 'success')
                 await this.load()
             } catch (e) {
                 this.showToast(e.message, 'error')

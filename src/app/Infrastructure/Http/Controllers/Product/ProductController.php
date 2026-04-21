@@ -6,7 +6,9 @@ use App\Application\Product\AddProductVariant\AddProductVariantDTO;
 use App\Application\Product\AddProductVariant\AddProductVariantUseCase;
 use App\Application\Product\DeactivateProduct\DeactivateProductUseCase;
 use App\Application\Product\GetProduct\GetProductUseCase;
+use App\Application\Product\ListInactiveProducts\ListInactiveProductsUseCase;
 use App\Application\Product\ListProducts\ListProductsUseCase;
+use App\Application\Product\ReactivateProduct\ReactivateProductUseCase;
 use App\Application\Product\RegisterProduct\RegisterProductDTO;
 use App\Application\Product\RegisterProduct\RegisterProductUseCase;
 use App\Application\Product\RegisterProduct\RegisterVariantDTO;
@@ -25,18 +27,25 @@ use Illuminate\Routing\Controller;
 class ProductController extends Controller
 {
     public function __construct(
-        private RegisterProductUseCase      $register,
-        private UpdateProductUseCase        $update,
-        private DeactivateProductUseCase    $deactivate,
-        private GetProductUseCase           $get,
-        private ListProductsUseCase         $list,
-        private AddProductVariantUseCase    $addVariant,
-        private RemoveProductVariantUseCase $removeVariant,
+        private RegisterProductUseCase        $register,
+        private UpdateProductUseCase          $update,
+        private DeactivateProductUseCase      $deactivate,
+        private ReactivateProductUseCase      $reactivateUseCase,
+        private GetProductUseCase             $get,
+        private ListProductsUseCase           $list,
+        private ListInactiveProductsUseCase   $listInactive,
+        private AddProductVariantUseCase      $addVariant,
+        private RemoveProductVariantUseCase   $removeVariant,
     ) {}
 
     public function index(): AnonymousResourceCollection
     {
         return ProductResource::collection($this->list->execute());
+    }
+
+    public function inactive(): AnonymousResourceCollection
+    {
+        return ProductResource::collection($this->listInactive->execute());
     }
 
     public function show(string $id): ProductResource
@@ -84,6 +93,13 @@ class ProductController extends Controller
     public function destroy(string $id): JsonResponse
     {
         $this->deactivate->execute($id);
+
+        return response()->json(null, 204);
+    }
+
+    public function reactivate(string $id): JsonResponse
+    {
+        $this->reactivateUseCase->execute($id);
 
         return response()->json(null, 204);
     }

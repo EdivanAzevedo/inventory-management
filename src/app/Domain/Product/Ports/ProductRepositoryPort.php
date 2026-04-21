@@ -13,4 +13,7 @@ interface ProductRepositoryPort
 
     /** @return Product[] */
     public function findAll(): array;
+
+    /** @return Product[] */
+    public function findInactive(): array;
 }

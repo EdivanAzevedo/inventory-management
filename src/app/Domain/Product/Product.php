@@ -3,6 +3,7 @@
 namespace App\Domain\Product;
 
 use App\Domain\Product\Events\ProductDeactivated;
+use App\Domain\Product\Events\ProductReactivated;
 use App\Domain\Product\Exceptions\VariantNotFoundException;
 use Ramsey\Uuid\UuidInterface;
 
@@ -52,6 +53,12 @@ class Product
     {
         $this->active = false;
         $this->domainEvents[] = new ProductDeactivated($this->id);
+    }
+
+    public function reactivate(): void
+    {
+        $this->active = true;
+        $this->domainEvents[] = new ProductReactivated($this->id);
     }
 
     public function addVariant(ProductVariant $variant): void

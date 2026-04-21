@@ -12,6 +12,7 @@ Gerencia o ciclo de vida de produtos e suas variações (SKUs).
 | `ProductVariant` | Entity | SKU com atributos (cor, tamanho, unidade) |
 | `ProductType` | Enum | `PRODUTO_FINAL`, `MATERIA_PRIMA`, `INSUMO` |
 | `ProductDeactivated` | Domain Event | Disparado no soft delete do produto |
+| `ProductReactivated` | Domain Event | Disparado ao restaurar um produto inativo |
 | `ProductRepositoryPort` | Interface (Port) | Contrato de persistência |
 
 ### Use Cases
@@ -21,6 +22,8 @@ Gerencia o ciclo de vida de produtos e suas variações (SKUs).
 | `RegisterProductUseCase` | Cria produto com variações iniciais |
 | `UpdateProductUseCase` | Atualiza nome, tipo e descrição |
 | `DeactivateProductUseCase` | Soft delete; dispara `ProductDeactivated` |
+| `ListInactiveProductsUseCase` | Lista todos os produtos inativos (soft-deleted) |
+| `ReactivateProductUseCase` | Restaura produto inativo; dispara `ProductReactivated` |
 | `GetProductUseCase` | Busca por ID ou lista todos |
 | `AddProductVariantUseCase` | Adiciona nova variação ao produto |
 | `RemoveProductVariantUseCase` | Desativa variação (soft delete) |
