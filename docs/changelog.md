@@ -1,5 +1,51 @@
 # Changelog
 
+## [0.6.0] - 2026-04-22
+
+### Added
+- Port `EventDispatcherPort` em `Domain/Shared/Ports` — contrato de publicação de domain events sem acoplamento ao framework
+- Adapter `LaravelEventDispatcherAdapter` em `Infrastructure/Events` — implementa `EventDispatcherPort` delegando para `Illuminate\Contracts\Events\Dispatcher`
+- Port `TransactionPort` em `Domain/Shared/Ports` — contrato de execução atômica; use cases não conhecem `DB::transaction()`
+- Adapter `LaravelTransactionAdapter` em `Infrastructure/Transaction` — implementa `TransactionPort` com `DB::transaction()`
+- Serviço `MinimumStockChecker` em `Application/Stock/Shared` — lógica de verificação de estoque mínimo extraída dos use cases; elimina duplicação e concentra a responsabilidade
+- Método `StockBalanceRepositoryPort::getBalanceByVariantIdForUpdate()` — obtém saldo com garantia de isolamento para operações concorrentes; implementado com lock pessimista na variante
+- Método `StockMovementRepositoryPort::existsReversalFor(UuidInterface $originalId): bool` — verifica se já existe estorno para uma movimentação
+- Exceção `MovementAlreadyReversedException` em `Domain/Stock/Exceptions` — lançada ao tentar estornar uma movimentação já estornada
+- Migration `2026_04_22_000000_add_created_at_index_to_stock_movements_table` — índice em `stock_movements.created_at`
+- Bindings de `EventDispatcherPort` e `TransactionPort` no `DomainServiceProvider`
+
+### Changed
+- `RecordEntryUseCase`, `RecordExitUseCase`, `CancelMovementUseCase` — substituem `Illuminate\Contracts\Events\Dispatcher` por `EventDispatcherPort` (DT-02 resolvida)
+- `RecordExitUseCase` — operação de leitura de saldo + gravação de movimento agora executa dentro de `TransactionPort::run()` com lock pessimista (DT-07 resolvida); `checkMinimumStock()` privado removido e substituído por `MinimumStockChecker` (DT-03 resolvida)
+- `CancelMovementUseCase` — mesma atomicidade da saída + verificação de duplo estorno dentro da transação (DT-07 e DT-08 resolvidas); FQCN sem import eliminado (DT-05 resolvida); `checkMinimumStock()` privado removido
+- `EloquentStockReportRepository` — cláusula `WHERE` reescrita com `(? IS NULL OR coluna = ?)` totalmente parametrizado, eliminando interpolação de string (DT-13 resolvida)
+
+### Fixed
+- Race condition em saída e cancelamento: duas requisições concorrentes não conseguem mais ultrapassar o saldo disponível (DT-07)
+- Duplo estorno: `CancelMovementUseCase` rejeita segunda tentativa de estorno do mesmo movimento (DT-08)
+
+## [0.5.0] - 2026-04-22
+
+### Added
+- Domain value objects `StockReport` e `StockReportEntry` em `Domain/Stock`
+- Port `StockReportRepositoryPort` em `Domain/Stock/Ports` — contrato de geração de relatório
+- Use case `GenerateStockReportUseCase` com DTO `GenerateStockReportDTO` — filtros por período, produto e tipo
+- Adapter `EloquentStockReportRepository` — query única que calcula `total_entries`, `total_exits` e `net_balance` (até `end_date`) via SQL com CASE/COALESCE
+- `StockReportRequest` com validação de datas (`date_format:Y-m-d`, `gte:start_date`) e `Rule::enum(ProductType::class)` para tipo
+- Resources `StockReportResource` e `StockReportEntryResource`
+- `StockReportController` (single-action `__invoke`) injetando apenas o use case
+- Endpoint `GET /api/stock/report` registrado no grupo `stock`
+- Binding `StockReportRepositoryPort → EloquentStockReportRepository` em `DomainServiceProvider`
+
+### Debt (identificada na revisão arquitetural desta sessão)
+- **DT-07** Race condition crítica em `RecordExitUseCase` e `CancelMovementUseCase`: leitura de saldo e gravação do movimento não estão dentro de uma transação com lock pessimista — duas requisições concorrentes podem ultrapassar o saldo disponível
+- **DT-08** `CancelMovementUseCase` não verifica se o movimento já foi estornado anteriormente — permite criar múltiplos `REVERSAL` para o mesmo movimento original
+- **DT-09** `StockReport` e `StockReportEntry` são read models/DTOs colocados na camada Domain; semanticamente pertencem à camada Application
+- **DT-10** `ProductVariant` não enforça invariantes no construtor: `minimumStock` pode ser negativo e `sku`/`unit` podem ser strings vazias — regras de negócio estão apenas no `FormRequest` HTTP
+- **DT-11** `new DateTimeImmutable()` chamado diretamente nos factory methods de `StockMovement` — impossibilita controle do clock em testes sem um `ClockPort`
+- **DT-12** Coluna `stock_movements.created_at` não possui índice; queries do relatório filtram e agrupam por essa coluna causando full scan
+- **DT-13** `EloquentStockReportRepository` constrói a cláusula `WHERE` via interpolação de string (`WHERE {$where}`) — estruturalmente seguro hoje mas frágil; migrar para query builder com `->when()`
+
 ## [0.4.0] - 2026-04-20
 
 ### Added

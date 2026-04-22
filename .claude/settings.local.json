@@ -15,7 +15,10 @@
       "Bash(code --list-extensions)",
       "Bash(npm install *)",
       "Bash(npm run *)",
-      "Bash(php -r \"require '/home/edivan/Documentos/GitHub/inventory-management/src/vendor/autoload.php';\")"
+      "Bash(php -r \"require '/home/edivan/Documentos/GitHub/inventory-management/src/vendor/autoload.php';\")",
+      "Bash(grep -E \"\\\\.\\(php|js\\)$\")",
+      "Bash(php -r \"require 'vendor/autoload.php'; echo 'autoload ok';\")",
+      "Bash(php -r ' *)"
     ]
   }
 }

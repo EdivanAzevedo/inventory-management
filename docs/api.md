@@ -143,3 +143,55 @@ Base URL: `http://localhost:8000/api`
   ]
 }
 ```
+
+### Relatório de estoque por período
+`GET /stock/report`
+
+**Query params**
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `start_date` | `Y-m-d` | sim | Início do período |
+| `end_date` | `Y-m-d` | sim | Fim do período (>= start_date) |
+| `product_id` | UUID | não | Filtra por produto específico |
+| `product_type` | string | não | `PRODUTO_FINAL`, `MATERIA_PRIMA` ou `INSUMO` |
+
+**Exemplo de requisição**
+```
+GET /api/stock/report?start_date=2026-04-01&end_date=2026-04-22&product_type=PRODUTO_FINAL
+```
+
+**Resposta 200**
+```json
+{
+  "data": {
+    "period": {
+      "start": "2026-04-01",
+      "end": "2026-04-22"
+    },
+    "generated_at": "2026-04-22 15:30:00",
+    "items": [
+      {
+        "product": {
+          "id": "uuid",
+          "name": "Camiseta Básica",
+          "type": "PRODUTO_FINAL"
+        },
+        "variant": {
+          "id": "uuid",
+          "sku": "CAM-P",
+          "color": null,
+          "size": "P",
+          "unit": "UN"
+        },
+        "total_entries": 100,
+        "total_exits": 30,
+        "net_balance": 70
+      }
+    ]
+  }
+}
+```
+
+> `total_entries` e `total_exits` contabilizam apenas movimentos do tipo `ENTRY` e `EXIT` dentro do período informado.
+> `net_balance` reflete o saldo acumulado considerando **todos** os movimentos (incluindo `REVERSAL`) até `end_date`.

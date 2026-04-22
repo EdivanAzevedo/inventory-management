@@ -40,6 +40,8 @@
 | `created_at` | TIMESTAMP | — |
 | `updated_at` | TIMESTAMP | — |
 
+**Índices:** `variant_id`, `referenced_movement_id`, `created_at` (adicionado em 2026-04-22 — queries de relatório filtram e agrupam por essa coluna).
+
 > `StockMovement` é imutável — nunca sofre UPDATE nem DELETE. Cancelamentos criam um novo registro do tipo `REVERSAL`.
 
 ### Cálculo de saldo

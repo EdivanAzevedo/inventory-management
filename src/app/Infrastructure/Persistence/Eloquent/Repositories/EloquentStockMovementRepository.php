@@ -42,6 +42,13 @@ class EloquentStockMovementRepository implements StockMovementRepositoryPort
             ->all();
     }
 
+    public function existsReversalFor(UuidInterface $originalId): bool
+    {
+        return StockMovementModel::where('referenced_movement_id', $originalId->toString())
+            ->where('type', MovementType::REVERSAL->value)
+            ->exists();
+    }
+
     private function toDomain(StockMovementModel $model): StockMovement
     {
         return StockMovement::reconstitute(

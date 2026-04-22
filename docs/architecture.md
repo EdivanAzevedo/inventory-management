@@ -10,9 +10,10 @@ O sistema segue a Arquitetura Hexagonal (Ports & Adapters) dentro do Laravel, or
 
 ## Princípios aplicados
 
-- **SRP** — cada Use Case é uma classe com única responsabilidade
-- **DIP** — repositórios são injetados via interface (Port), nunca via implementação concreta
+- **SRP** — cada Use Case é uma classe com única responsabilidade; lógica compartilhada entre use cases é extraída para serviços de Application (ex.: `MinimumStockChecker`)
+- **DIP** — repositórios, dispatcher de eventos e transações são injetados via interface (Port), nunca via implementação concreta
 - **OCP** — novos tipos de movimentação ou produto não alteram código existente
+- **ISP** — ports têm interfaces mínimas e focadas
 
 ## Fluxo de uma requisição
 
@@ -25,33 +26,56 @@ HTTP Request
         → EloquentRepository (Infrastructure/Persistence)
 ```
 
-## IdGeneratorPort — geração de ID como Port
+## Ports compartilhados (Domain/Shared/Ports)
 
-A geração de UUIDs é abstraída atrás de uma interface no domínio compartilhado:
+Todos os contratos abaixo vivem no domínio e nunca importam código de framework:
 
-```
-Domain/Shared/Ports/IdGeneratorPort       ← interface pura
-Infrastructure/Identity/UuidV4Generator   ← implementação com Ramsey UUID
-```
+| Port | Implementação (Infrastructure) | Finalidade |
+|---|---|---|
+| `IdGeneratorPort` | `UuidV4Generator` | Geração de UUID; substituível por ULID/Snowflake alterando só o binding |
+| `NotificationPort` | `LogNotificationAdapter` | Envio de alertas de estoque |
+| `EventDispatcherPort` | `LaravelEventDispatcherAdapter` | Publicação de domain events sem acoplamento ao framework |
+| `TransactionPort` | `LaravelTransactionAdapter` | Execução atômica de operações; use cases não conhecem `DB::transaction()` |
 
-Use cases que criam agregados recebem `IdGeneratorPort` via construtor. A lógica de geração nunca vaza para o domínio e pode ser substituída (ex.: ULID, Snowflake) alterando apenas o binding no `DomainServiceProvider`.
+Use cases injetam `EventDispatcherPort` em vez de `Illuminate\Contracts\Events\Dispatcher` — a Application layer permanece portável entre frameworks.
 
-## Fluxo do alerta assíncrono de estoque mínimo
+## Fluxo de saída/cancelamento com atomicidade e lock pessimista
 
-Quando uma saída ou cancelamento de entrada reduz o saldo abaixo do `minimum_stock` da variante, o sistema dispara um Domain Event que é processado de forma assíncrona via fila:
+`RecordExitUseCase` e `CancelMovementUseCase` executam a gravação dentro de `TransactionPort::run()`. Dentro da transação, `getBalanceByVariantIdForUpdate()` aplica um lock no registro de `product_variants` para serializar operações concorrentes na mesma variante:
 
 ```
 RecordExitUseCase / CancelMovementUseCase
-  → dispatcher.dispatch(StockBelowMinimumDetected)
-    → CheckMinimumStockHandler (ShouldQueue, fila: stock-alerts)
-      → NotificationPort::sendStockAlert()
-        → LogNotificationAdapter (Log::warning)
+  → TransactionPort::run(fn)
+    → StockBalanceRepositoryPort::getBalanceByVariantIdForUpdate()  ← lock na variante
+    → StockMovement::createExit() / createReversal()                ← domínio valida regras
+    → StockMovementRepositoryPort::save()
+  → (commit) — eventos disparados somente após commit
+  → EventDispatcherPort::dispatch(StockMovementRegistered | Reversed)
+  → MinimumStockChecker::check()
+    → EventDispatcherPort::dispatch(StockBelowMinimumDetected)
+```
+
+**Por que os eventos são disparados fora da transação:** se disparados dentro, uma falha no commit propagaria eventos que nunca deveriam ter ocorrido. O padrão correto é publicar domain events apenas após a confirmação atômica das mudanças.
+
+## Fluxo do alerta assíncrono de estoque mínimo
+
+`MinimumStockChecker` (Application/Stock/Shared) concentra a regra compartilhada entre `RecordExitUseCase` e `CancelMovementUseCase`:
+
+```
+MinimumStockChecker::check(variantId, newBalance)
+  → ProductVariantRepositoryPort::findById()
+  → se newBalance < minimumStock:
+    → EventDispatcherPort::dispatch(StockBelowMinimumDetected)
+      → CheckMinimumStockHandler (ShouldQueue, fila: stock-alerts)
+        → NotificationPort::sendStockAlert()
+          → LogNotificationAdapter (Log::warning)
 ```
 
 **Componentes envolvidos:**
 
 | Componente | Camada | Responsabilidade |
 |---|---|---|
+| `MinimumStockChecker` | Application/Stock/Shared | Verifica mínimo e emite o evento; shared entre use cases |
 | `StockBelowMinimumDetected` | Domain/Events | Carrega variantId, saldo atual e mínimo |
 | `NotificationPort` | Domain/Shared/Ports | Interface de envio de alerta |
 | `CheckMinimumStockHandler` | Application | Recebe o evento e chama o port |
@@ -62,45 +86,45 @@ O driver de fila padrão é `database` (tabela `jobs`). Em ambiente de teste usa
 
 ---
 
-## Dívida técnica identificada
+## Dívida técnica
 
-Issues encontrados na revisão de 2026-04-20. Devem ser corrigidos antes de produção.
+### ✅ Resolvidas em 2026-04-22
 
-### 🔴 DT-01 — `ShouldQueue` na camada Application
+| ID | Problema | Resolução |
+|---|---|---|
+| DT-02 | Use cases acoplados a `Illuminate\Contracts\Events\Dispatcher` | `EventDispatcherPort` + `LaravelEventDispatcherAdapter` |
+| DT-03 | `checkMinimumStock()` duplicado em dois use cases | Extraído para `MinimumStockChecker` (Application/Stock/Shared) |
+| DT-05 | FQCN `\Ramsey\Uuid\UuidInterface` sem import em `CancelMovementUseCase` | Eliminado na reescrita do use case |
+| DT-07 | Race condition em saída/cancelamento sem transação e lock | `TransactionPort` + `getBalanceByVariantIdForUpdate()` |
+| DT-08 | Duplo estorno não impedido em `CancelMovementUseCase` | `existsReversalFor()` verificado dentro da transação; lança `MovementAlreadyReversedException` |
+| DT-12 | Falta de índice em `stock_movements.created_at` | Migration `2026_04_22_000000_add_created_at_index_to_stock_movements_table` |
+| DT-13 | `WHERE {$where}` por interpolação em `EloquentStockReportRepository` | Substituído por `(? IS NULL OR coluna = ?)` totalmente parametrizado |
 
-**Arquivo:** `Application/Stock/CheckMinimumStock/CheckMinimumStockHandler.php`
+### 🔴 Pendentes (antes de produção)
 
-`CheckMinimumStockHandler` implementa `Illuminate\Contracts\Queue\ShouldQueue` e declara `$queue = 'stock-alerts'`. Isso viola o DIP e SRP: a Application layer conhece o mecanismo de entrega (fila), que é uma preocupação de infraestrutura.
+**DT-01 — `ShouldQueue` na camada Application**
 
-**Correção planejada:** Criar `Infrastructure/Events/QueuedStockAlertListener` que implementa `ShouldQueue` e delega para o handler. O handler vira serviço Application puro.
+`CheckMinimumStockHandler` implementa `Illuminate\Contracts\Queue\ShouldQueue` e declara `$queue`. A Application layer não deve conhecer o mecanismo de entrega (fila).
 
-### 🔴 DT-02 — Use cases acoplados a `Illuminate\Contracts\Events\Dispatcher`
+*Correção:* Criar `Infrastructure/Events/QueuedStockAlertListener` com `ShouldQueue` que delega ao handler puro de Application.
 
-**Arquivos:** `RecordExitUseCase`, `CancelMovementUseCase`
+**DT-04 — Regra de negócio na Application layer**
 
-Os use cases injetam `Illuminate\Contracts\Events\Dispatcher` diretamente. Mesmo sendo interface, é um contrato do Laravel — troca de framework quebra a Application layer. Viola DIP.
+`newBalance < variant->getMinimumStock()` em `MinimumStockChecker` é regra de domínio. Pertence à entidade `ProductVariant` como `isBelowMinimum(int $balance): bool`.
 
-**Correção planejada:** Definir `Domain/Shared/Ports/DomainEventDispatcherPort` e criar `Infrastructure/Events/LaravelEventDispatcherAdapter` como implementação.
+**DT-06 — Strings literais no SQL de `EloquentStockBalanceRepository`**
 
-### 🟡 DT-03 — Lógica `checkMinimumStock` duplicada
+`'ENTRY'`, `'EXIT'`, `'REVERSAL'` hardcoded no SQL. Se os valores do enum mudarem, o SQL quebra silenciosamente.
 
-**Arquivos:** `RecordExitUseCase`, `CancelMovementUseCase`
+*Correção:* Usar `MovementType::ENTRY->value` nos bindings.
 
-Método `checkMinimumStock` idêntico em ambos os use cases. Viola DRY e SRP (cada use case acumula responsabilidade secundária de alertas).
+### 🟡 Pendentes (melhoria de design)
 
-**Correção planejada:** Extrair `Application/Stock/Shared/MinimumStockAlertService`.
+**DT-09** — `StockReport` e `StockReportEntry` estão em `Domain/Stock`; semanticamente são Read Models da camada Application.
 
-### 🟡 DT-04 — Regra de negócio fora do domínio
+**DT-10** — `ProductVariant` não enforça invariantes no construtor: `minimumStock` pode ser negativo, `sku`/`unit` podem ser strings vazias.
 
-`$newBalance < $variant->getMinimumStock()` é uma regra de domínio pura escrita na Application layer. Pertence à entidade `ProductVariant` como `isBelowMinimum(int $balance): bool`.
-
-### 🟠 DT-05 — FQCN sem import em `CancelMovementUseCase`
-
-Linha 56: `\Ramsey\Uuid\UuidInterface` como FQCN no corpo do método, enquanto o restante do projeto usa `use` no topo do arquivo.
-
-### 🟠 DT-06 — Strings literais no SQL do `EloquentStockBalanceRepository`
-
-A query usa `'ENTRY'`, `'EXIT'`, `'REVERSAL'` como strings hardcoded em vez de `MovementType::ENTRY->value`. Se os valores do enum mudarem, o SQL quebra silenciosamente.
+**DT-11** — `new DateTimeImmutable()` chamado diretamente nos factory methods de `StockMovement`; impossibilita controle do clock em testes sem um `ClockPort`.
 
 ---
 

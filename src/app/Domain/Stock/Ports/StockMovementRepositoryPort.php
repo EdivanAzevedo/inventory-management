@@ -13,4 +13,6 @@ interface StockMovementRepositoryPort
 
     /** @return StockMovement[] */
     public function findByVariantId(UuidInterface $variantId): array;
+
+    public function existsReversalFor(UuidInterface $originalId): bool;
 }

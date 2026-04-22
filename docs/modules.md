@@ -61,25 +61,37 @@ Controla movimentações de estoque (entradas, saídas e estornos) com rastreabi
 | `StockBelowMinimumDetected` | Domain Event | Saldo abaixo do estoque mínimo |
 | `StockMovementRepositoryPort` | Interface (Port) | Contrato de persistência de movimentações |
 | `StockBalanceRepositoryPort` | Interface (Port) | Contrato de cálculo de saldo |
+| `StockReportRepositoryPort` | Interface (Port) | Contrato de geração de relatório consolidado |
+| `StockReport` | Value Object | Envelope do relatório: período, `generated_at` e lista de entradas |
+| `StockReportEntry` | Value Object | Linha do relatório: produto, variante, `total_entries`, `total_exits`, `net_balance` |
 
 ### Use Cases
 
 | Use Case / Handler | Descrição |
 |---|---|
 | `RecordEntryUseCase` | Registra entrada; dispara `StockMovementRegistered` |
-| `RecordExitUseCase` | Registra saída; valida saldo; dispara `StockBelowMinimumDetected` se `novoSaldo < minimumStock` |
-| `CancelMovementUseCase` | Cria `REVERSAL` compensatório; valida que saldo não fica negativo; dispara `StockBelowMinimumDetected` se estorno de entrada reduzir saldo abaixo do mínimo |
+| `RecordExitUseCase` | Registra saída dentro de transação com lock pessimista; valida saldo; delega alerta a `MinimumStockChecker` |
+| `CancelMovementUseCase` | Verifica duplo estorno; cria `REVERSAL` dentro de transação com lock; delega alerta a `MinimumStockChecker` |
 | `CheckMinimumStockHandler` | Handler assíncrono do evento `StockBelowMinimumDetected`; delega para `NotificationPort` |
 | `QueryStockBalanceUseCase` | Retorna saldo atual por variante |
 | `ListMovementsByVariantUseCase` | Lista histórico de movimentações por variante |
+| `GenerateStockReportUseCase` | Gera relatório agrupado por produto/SKU no período; aceita filtros de `product_id` e `product_type` |
+
+### Serviços compartilhados (Application/Stock/Shared)
+
+| Serviço | Descrição |
+|---|---|
+| `MinimumStockChecker` | Verifica se o novo saldo fica abaixo do mínimo e dispara `StockBelowMinimumDetected`; compartilhado entre `RecordExitUseCase` e `CancelMovementUseCase` |
 
 ### Regras de negócio
 
 - Saída só é registrada se `saldo >= quantidade solicitada`
 - `StockMovement` nunca é deletado; cancelamentos geram um novo movimento do tipo `REVERSAL`
+- Cada movimentação pode ser estornada apenas uma vez; uma segunda tentativa lança `MovementAlreadyReversedException`
 - Estorno de uma entrada valida que o saldo resultante não ficará negativo
 - `StockBelowMinimumDetected` é disparado após saída **ou** estorno de entrada quando `novoSaldo < minimumStock`
 - O evento é processado de forma assíncrona pela fila `stock-alerts` via `CheckMinimumStockHandler`
+- Saídas e cancelamentos são operações atômicas: leitura de saldo e gravação do movimento ocorrem dentro da mesma transação com lock de exclusividade na variante
 
 ### Exemplo de uso
 
@@ -100,6 +112,13 @@ app(RecordExitUseCase::class)->execute(new RecordExitDTO(
 
 // Estorno
 app(CancelMovementUseCase::class)->execute('uuid-da-movimentacao', 'Lançamento errado');
+
+// Relatório por período
+app(GenerateStockReportUseCase::class)->execute(new GenerateStockReportDTO(
+    startDate:   '2026-04-01',
+    endDate:     '2026-04-22',
+    productType: 'PRODUTO_FINAL',
+));
 ```
 
 ---
@@ -108,11 +127,22 @@ app(CancelMovementUseCase::class)->execute('uuid-da-movimentacao', 'Lançamento 
 
 Utilitários compartilhados entre módulos.
 
-| Classe | Tipo | Descrição |
-|---|---|---|
-| `IdGeneratorPort` | Interface (Port) | Contrato de geração de ID (`Domain/Shared/Ports`) |
-| `NotificationPort` | Interface (Port) | Contrato de envio de alertas de estoque (`Domain/Shared/Ports`) |
-| `UuidV4Generator` | Adapter | Implementação de `IdGeneratorPort` com Ramsey UUID v4 (`Infrastructure/Identity`) |
-| `LogNotificationAdapter` | Adapter | Implementação de `NotificationPort` que grava `Log::warning` (`Infrastructure/Notification`) |
+### Domain/Shared/Ports
 
-Todos os use cases que criam agregados recebem `IdGeneratorPort` via injeção de dependência. O `CheckMinimumStockHandler` recebe `NotificationPort`, permitindo trocar o mecanismo de notificação (e-mail, webhook, etc.) alterando apenas o binding no `DomainServiceProvider`.
+| Port | Descrição |
+|---|---|
+| `IdGeneratorPort` | Contrato de geração de ID |
+| `NotificationPort` | Contrato de envio de alertas de estoque |
+| `EventDispatcherPort` | Contrato de publicação de domain events; isola use cases do framework de eventos |
+| `TransactionPort` | Contrato de execução atômica; isola use cases do mecanismo de transação de banco |
+
+### Infrastructure/Adapters
+
+| Adapter | Port implementado | Descrição |
+|---|---|---|
+| `UuidV4Generator` | `IdGeneratorPort` | Ramsey UUID v4 (`Infrastructure/Identity`) |
+| `LogNotificationAdapter` | `NotificationPort` | Grava `Log::warning` (`Infrastructure/Notification`) |
+| `LaravelEventDispatcherAdapter` | `EventDispatcherPort` | Delega para `Illuminate\Contracts\Events\Dispatcher` (`Infrastructure/Events`) |
+| `LaravelTransactionAdapter` | `TransactionPort` | Envolve `DB::transaction()` (`Infrastructure/Transaction`) |
+
+Use cases injetam todos esses contratos via DI. Trocar a implementação (ex.: Redis em vez de DB para fila, SQS em vez de Sync para dispatcher) requer apenas alterar o binding no `DomainServiceProvider` — sem tocar nos use cases.

@@ -2,6 +2,7 @@
 
 use App\Infrastructure\Http\Controllers\Product\ProductController;
 use App\Infrastructure\Http\Controllers\Stock\StockController;
+use App\Infrastructure\Http\Controllers\Stock\StockReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('stock')->group(function () {
@@ -10,6 +11,7 @@ Route::prefix('stock')->group(function () {
     Route::post('/movements/{id}/cancel', [StockController::class, 'cancel']);
     Route::get('/balance/{variantId}', [StockController::class, 'balance']);
     Route::get('/movements/{variantId}', [StockController::class, 'movements']);
+    Route::get('/report', StockReportController::class);
 });
 
 Route::prefix('products')->group(function () {

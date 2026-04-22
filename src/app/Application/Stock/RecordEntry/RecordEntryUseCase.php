@@ -4,10 +4,10 @@ namespace App\Application\Stock\RecordEntry;
 
 use App\Domain\Product\Exceptions\VariantNotFoundException;
 use App\Domain\Product\Ports\ProductVariantRepositoryPort;
+use App\Domain\Shared\Ports\EventDispatcherPort;
 use App\Domain\Shared\Ports\IdGeneratorPort;
 use App\Domain\Stock\Ports\StockMovementRepositoryPort;
 use App\Domain\Stock\StockMovement;
-use Illuminate\Contracts\Events\Dispatcher;
 use Ramsey\Uuid\Uuid;
 
 class RecordEntryUseCase
@@ -16,7 +16,7 @@ class RecordEntryUseCase
         private StockMovementRepositoryPort  $movements,
         private ProductVariantRepositoryPort $variants,
         private IdGeneratorPort              $ids,
-        private Dispatcher                   $dispatcher,
+        private EventDispatcherPort          $dispatcher,
     ) {}
 
     public function execute(RecordEntryDTO $dto): StockMovement
