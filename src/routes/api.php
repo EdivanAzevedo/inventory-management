@@ -9,6 +9,7 @@ Route::prefix('stock')->group(function () {
     Route::post('/entries', [StockController::class, 'entry']);
     Route::post('/exits', [StockController::class, 'exit']);
     Route::post('/movements/{id}/cancel', [StockController::class, 'cancel']);
+    Route::post('/transfers', [StockController::class, 'transfer']);
     Route::get('/balance/{variantId}', [StockController::class, 'balance']);
     Route::get('/movements/{variantId}', [StockController::class, 'movements']);
     Route::get('/report', StockReportController::class);

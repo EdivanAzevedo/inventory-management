@@ -9,11 +9,15 @@ use App\Application\Stock\RecordEntry\RecordEntryDTO;
 use App\Application\Stock\RecordEntry\RecordEntryUseCase;
 use App\Application\Stock\RecordExit\RecordExitDTO;
 use App\Application\Stock\RecordExit\RecordExitUseCase;
+use App\Application\Stock\TransferStock\TransferStockDTO;
+use App\Application\Stock\TransferStock\TransferStockUseCase;
 use App\Infrastructure\Http\Requests\Stock\CancelMovementRequest;
 use App\Infrastructure\Http\Requests\Stock\RecordEntryRequest;
 use App\Infrastructure\Http\Requests\Stock\RecordExitRequest;
+use App\Infrastructure\Http\Requests\Stock\TransferStockRequest;
 use App\Infrastructure\Http\Resources\Stock\StockBalanceResource;
 use App\Infrastructure\Http\Resources\Stock\StockMovementResource;
+use App\Infrastructure\Http\Resources\Stock\TransferStockResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
@@ -26,6 +30,7 @@ class StockController extends Controller
         private CancelMovementUseCase           $cancelMovement,
         private QueryStockBalanceUseCase        $queryBalance,
         private ListMovementsByVariantUseCase   $listMovements,
+        private TransferStockUseCase            $transferStock,
     ) {}
 
     public function entry(RecordEntryRequest $request): JsonResponse
@@ -71,5 +76,19 @@ class StockController extends Controller
     public function movements(string $variantId): AnonymousResourceCollection
     {
         return StockMovementResource::collection($this->listMovements->execute($variantId));
+    }
+
+    public function transfer(TransferStockRequest $request): JsonResponse
+    {
+        $result = $this->transferStock->execute(new TransferStockDTO(
+            fromVariantId: $request->input('from_variant_id'),
+            toVariantId:   $request->input('to_variant_id'),
+            quantity:      $request->input('quantity'),
+            reason:        $request->input('reason'),
+        ));
+
+        return (new TransferStockResource($result))
+            ->response()
+            ->setStatusCode(201);
     }
 }
