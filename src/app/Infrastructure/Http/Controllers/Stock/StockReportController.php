@@ -4,9 +4,11 @@ namespace App\Infrastructure\Http\Controllers\Stock;
 
 use App\Application\Stock\GenerateStockReport\GenerateStockReportDTO;
 use App\Application\Stock\GenerateStockReport\GenerateStockReportUseCase;
+use App\Domain\Stock\StockMovement;
 use App\Infrastructure\Http\Requests\Stock\StockReportRequest;
 use App\Infrastructure\Http\Resources\Stock\StockReportResource;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Gate;
 
 class StockReportController extends Controller
 {
@@ -16,6 +18,8 @@ class StockReportController extends Controller
 
     public function __invoke(StockReportRequest $request): StockReportResource
     {
+        Gate::authorize('viewReport', StockMovement::class);
+
         $report = $this->generateReport->execute(new GenerateStockReportDTO(
             startDate:   $request->input('start_date'),
             endDate:     $request->input('end_date'),

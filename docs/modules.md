@@ -1,5 +1,66 @@
 # Módulos
 
+## Auth
+
+Gerencia autenticação (login/logout/registro) e autorização por role.
+
+### Domain
+
+| Classe | Tipo | Descrição |
+|---|---|---|
+| `User` | Aggregate Root | Usuário com id auto-increment, name, email, passwordHash e role |
+| `UserRole` | Enum | `admin`, `operator`, `viewer` |
+| `UserRepositoryPort` | Interface (Port) | `save`, `findById`, `findByEmail`, `existsByEmail` |
+| `UserTokenPort` | Interface (Port) | `createToken`, `revokeAllTokens` |
+| `PasswordHasherPort` | Interface (Port) | `hash`, `verify` — em `Domain/Shared/Ports` |
+
+### Use Cases
+
+| Use Case | Descrição |
+|---|---|
+| `RegisterUserUseCase` | Valida unicidade do e-mail, cria usuário com role `operator`, retorna token Sanctum |
+| `AuthenticateUserUseCase` | Verifica credenciais, retorna token Sanctum |
+| `RevokeTokenUseCase` | Revoga todos os tokens do usuário (logout) |
+| `UpdateUserRoleUseCase` | Altera o role de um usuário — exclusivo para `admin` |
+
+### Policies (Infrastructure/Http/Policies)
+
+As policies são registradas via `Gate::policy()` no `AppServiceProvider` e controlam o acesso por role. Controllers não contêm lógica de role.
+
+| Policy | Método | Roles permitidos |
+|---|---|---|
+| `ProductPolicy` | `viewAny`, `view` | todos |
+| `ProductPolicy` | `create`, `update`, `addVariant` | `admin`, `operator` |
+| `ProductPolicy` | `delete`, `reactivate`, `removeVariant` | `admin` |
+| `StockPolicy` | `viewBalance`, `viewMovements`, `viewReport` | todos |
+| `StockPolicy` | `record`, `cancel`, `transfer` | `admin`, `operator` |
+| `UserPolicy` | `updateRole` | `admin` |
+
+### Exemplo de uso
+
+```php
+// Registro
+app(RegisterUserUseCase::class)->execute(new RegisterUserDTO(
+    name:     'João Silva',
+    email:    'joao@example.com',
+    password: 'secret123',
+));
+
+// Login
+app(AuthenticateUserUseCase::class)->execute(new AuthenticateUserDTO(
+    email:    'joao@example.com',
+    password: 'secret123',
+));
+
+// Alterar role
+app(UpdateUserRoleUseCase::class)->execute(new UpdateUserRoleDTO(
+    userId: 1,
+    role:   'admin',
+));
+```
+
+---
+
 ## Product
 
 Gerencia o ciclo de vida de produtos e suas variações (SKUs).
@@ -131,18 +192,23 @@ Utilitários compartilhados entre módulos.
 
 | Port | Descrição |
 |---|---|
+| `ClockPort` | Contrato de leitura de data/hora; permite controle do clock em testes |
 | `IdGeneratorPort` | Contrato de geração de ID |
 | `NotificationPort` | Contrato de envio de alertas de estoque |
 | `EventDispatcherPort` | Contrato de publicação de domain events; isola use cases do framework de eventos |
 | `TransactionPort` | Contrato de execução atômica; isola use cases do mecanismo de transação de banco |
+| `PasswordHasherPort` | Contrato de hash e verificação de senhas |
 
 ### Infrastructure/Adapters
 
-| Adapter | Port implementado | Descrição |
+| Adapter | Port implementado | Localização |
 |---|---|---|
-| `UuidV4Generator` | `IdGeneratorPort` | Ramsey UUID v4 (`Infrastructure/Identity`) |
-| `LogNotificationAdapter` | `NotificationPort` | Grava `Log::warning` (`Infrastructure/Notification`) |
-| `LaravelEventDispatcherAdapter` | `EventDispatcherPort` | Delega para `Illuminate\Contracts\Events\Dispatcher` (`Infrastructure/Events`) |
-| `LaravelTransactionAdapter` | `TransactionPort` | Envolve `DB::transaction()` (`Infrastructure/Transaction`) |
+| `SystemClock` | `ClockPort` | `Infrastructure/Time` |
+| `UuidV4Generator` | `IdGeneratorPort` | `Infrastructure/Identity` |
+| `LogNotificationAdapter` | `NotificationPort` | `Infrastructure/Notification` |
+| `LaravelEventDispatcherAdapter` | `EventDispatcherPort` | `Infrastructure/Events` |
+| `LaravelTransactionAdapter` | `TransactionPort` | `Infrastructure/Transaction` |
+| `BcryptPasswordHasher` | `PasswordHasherPort` | `Infrastructure/Auth` |
+| `SanctumTokenAdapter` | `UserTokenPort` | `Infrastructure/Auth` |
 
-Use cases injetam todos esses contratos via DI. Trocar a implementação (ex.: Redis em vez de DB para fila, SQS em vez de Sync para dispatcher) requer apenas alterar o binding no `DomainServiceProvider` — sem tocar nos use cases.
+Trocar qualquer implementação requer apenas alterar o binding no `DomainServiceProvider` — sem tocar nos use cases.

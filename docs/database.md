@@ -1,5 +1,40 @@
 # Banco de Dados
 
+## users
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `id` | BIGINT (PK, auto-increment) | Identificador único |
+| `name` | VARCHAR(255) | Nome do usuário |
+| `email` | VARCHAR(255) UNIQUE | E-mail de acesso |
+| `password` | VARCHAR(255) | Hash bcrypt |
+| `role` | VARCHAR(255) | `admin`, `operator` ou `viewer` — padrão `operator` |
+| `email_verified_at` | TIMESTAMP (nullable) | Verificação de e-mail (não utilizada atualmente) |
+| `remember_token` | VARCHAR(100) (nullable) | Token de "lembrar sessão" (web) |
+| `created_at` | TIMESTAMP | — |
+| `updated_at` | TIMESTAMP | — |
+
+## personal_access_tokens
+
+Gerenciada pelo Laravel Sanctum. Armazena os tokens de API emitidos por usuário.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `id` | BIGINT (PK) | — |
+| `tokenable_type` | VARCHAR(255) | Tipo do modelo dono do token (`UserModel`) |
+| `tokenable_id` | BIGINT | ID do usuário dono do token |
+| `name` | VARCHAR(255) | Nome descritivo do token (ex.: `auth-token`) |
+| `token` | VARCHAR(64) UNIQUE | Hash SHA-256 do token |
+| `abilities` | TEXT (nullable) | Permissões do token (não utilizado) |
+| `last_used_at` | TIMESTAMP (nullable) | Último uso |
+| `expires_at` | TIMESTAMP (nullable) | Expiração (não configurado) |
+| `created_at` | TIMESTAMP | — |
+| `updated_at` | TIMESTAMP | — |
+
+> O token em plain-text é retornado apenas uma vez no login/registro e nunca é armazenado. Logout chama `tokens()->delete()` e invalida todos os tokens do usuário.
+
+---
+
 ## products
 
 | Coluna | Tipo | Descrição |
@@ -40,13 +75,11 @@
 | `created_at` | TIMESTAMP | — |
 | `updated_at` | TIMESTAMP | — |
 
-**Índices:** `variant_id`, `referenced_movement_id`, `created_at` (adicionado em 2026-04-22 — queries de relatório filtram e agrupam por essa coluna).
+**Índices:** `variant_id`, `referenced_movement_id`, `created_at`.
 
 > `StockMovement` é imutável — nunca sofre UPDATE nem DELETE. Cancelamentos criam um novo registro do tipo `REVERSAL`.
 
 ### Cálculo de saldo
-
-O saldo é calculado via SQL com `LEFT JOIN` para tratar o tipo `REVERSAL`:
 
 ```sql
 SELECT COALESCE(SUM(

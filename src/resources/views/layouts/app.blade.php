@@ -29,9 +29,27 @@
 
     {{-- Main --}}
     <main class="flex-1 flex flex-col min-h-screen">
-        <header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between">
+        <header x-data="appHeader"
+                class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between">
             <h1 class="text-xl font-semibold text-slate-800">@yield('title', 'Gestão de Estoque')</h1>
-            @yield('header-action')
+
+            <div class="flex items-center gap-4">
+                @yield('header-action')
+
+                {{-- Informações do usuário autenticado --}}
+                <template x-if="user">
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-slate-700" x-text="user.name"></span>
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600"
+                              x-text="roleLabel()">
+                        </span>
+                        <button @click="logout"
+                                class="text-xs text-slate-500 hover:text-red-600 transition-colors">
+                            Sair
+                        </button>
+                    </div>
+                </template>
+            </div>
         </header>
         <div class="flex-1 p-8">
             @yield('content')

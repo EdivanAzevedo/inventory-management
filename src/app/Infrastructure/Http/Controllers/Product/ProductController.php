@@ -18,11 +18,13 @@ use App\Application\Product\UpdateProduct\UpdateProductUseCase;
 use App\Infrastructure\Http\Requests\Product\AddVariantRequest;
 use App\Infrastructure\Http\Requests\Product\RegisterProductRequest;
 use App\Infrastructure\Http\Requests\Product\UpdateProductRequest;
+use App\Domain\Product\Product;
 use App\Infrastructure\Http\Resources\Product\ProductResource;
 use App\Infrastructure\Http\Resources\Product\ProductVariantResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Gate;
 
 class ProductController extends Controller
 {
@@ -40,21 +42,28 @@ class ProductController extends Controller
 
     public function index(): AnonymousResourceCollection
     {
+        Gate::authorize('viewAny', Product::class);
+
         return ProductResource::collection($this->list->execute());
     }
 
     public function inactive(): AnonymousResourceCollection
     {
+        Gate::authorize('viewAny', Product::class);
+
         return ProductResource::collection($this->listInactive->execute());
     }
 
     public function show(string $id): ProductResource
     {
+        Gate::authorize('view', Product::class);
+
         return new ProductResource($this->get->execute($id));
     }
 
     public function store(RegisterProductRequest $request): JsonResponse
     {
+        Gate::authorize('create', Product::class);
         $variants = array_map(
             fn ($v) => new RegisterVariantDTO(
                 sku:          $v['sku'],
@@ -80,6 +89,8 @@ class ProductController extends Controller
 
     public function update(UpdateProductRequest $request, string $id): ProductResource
     {
+        Gate::authorize('update', Product::class);
+
         $product = $this->update->execute(new UpdateProductDTO(
             id:          $id,
             name:        $request->input('name'),
@@ -92,6 +103,8 @@ class ProductController extends Controller
 
     public function destroy(string $id): JsonResponse
     {
+        Gate::authorize('delete', Product::class);
+
         $this->deactivate->execute($id);
 
         return response()->json(null, 204);
@@ -99,6 +112,8 @@ class ProductController extends Controller
 
     public function reactivate(string $id): JsonResponse
     {
+        Gate::authorize('reactivate', Product::class);
+
         $this->reactivateUseCase->execute($id);
 
         return response()->json(null, 204);
@@ -106,6 +121,7 @@ class ProductController extends Controller
 
     public function addVariant(AddVariantRequest $request, string $productId): JsonResponse
     {
+        Gate::authorize('addVariant', Product::class);
         $variant = $this->addVariant->execute(new AddProductVariantDTO(
             productId:    $productId,
             sku:          $request->input('sku'),
@@ -122,6 +138,8 @@ class ProductController extends Controller
 
     public function removeVariant(string $productId, string $variantId): JsonResponse
     {
+        Gate::authorize('removeVariant', Product::class);
+
         $this->removeVariant->execute($productId, $variantId);
 
         return response()->json(null, 204);

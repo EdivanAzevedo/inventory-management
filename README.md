@@ -8,10 +8,10 @@ Sistema de gerenciamento de estoque com controle de produtos, variações (SKUs)
 - **Backend:** PHP 8.3 + Laravel 13.5
 - **Banco de dados:** MySQL 8.0
 - **Arquitetura:** Hexagonal / Clean Architecture (Domain · Application · Infrastructure)
-- **Frontend:** Blade + Alpine.js (substituível por outro framework sem alteração no backend)
-- **Testes:** PHPUnit
+- **Frontend:** Blade + Alpine.js + Tailwind CSS
+- **Autenticação:** Laravel Sanctum (token-based)
 
-## Instalação
+## Quick Start
 
 ```bash
 git clone https://github.com/EdivanAzevedo/inventory-management.git
@@ -19,9 +19,12 @@ cd inventory-management/src
 composer install && npm install
 cp .env.example .env          # configure DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD
 php artisan key:generate
-php artisan migrate --seed    # --seed opcional: popula produtos e movimentações de exemplo
+php artisan migrate --seed    # cria tabelas e popula usuários, produtos e movimentações de exemplo
 composer run dev              # sobe Laravel :8000, Vite :5173, queue worker e logs
 ```
+
+Acesse `http://localhost:8000` — o sistema redireciona para `/login`.
+Credenciais de exemplo em [docs/installation.md](docs/installation.md).
 
 ## Documentação
 
@@ -31,15 +34,6 @@ composer run dev              # sobe Laravel :8000, Vite :5173, queue worker e l
 - [API](docs/api.md)
 - [Banco de dados](docs/database.md)
 - [Changelog](docs/changelog.md)
-
-## Roadmap
-
-| Fase | Status | Escopo |
-|---|---|---|
-| MVP | ✅ Concluído | CRUD de produtos, entradas/saídas, estorno, alerta de mínimo, relatório |
-| Fase 1 — Dívida técnica | ✅ Concluído | ClockPort, invariantes de domínio, read models na Application, ShouldQueue na Infrastructure |
-| Fase 2 — Casos de uso | 🔜 Pendente | `TransferStock` · `AddProductVariant` · `RemoveProductVariant` |
-| Fase 3 — Auth | 🔜 Pendente | Laravel Sanctum, roles admin/operator/viewer, Policies |
 
 ## Licença
 

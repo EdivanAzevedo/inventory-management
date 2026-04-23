@@ -15,12 +15,14 @@ use App\Infrastructure\Http\Requests\Stock\CancelMovementRequest;
 use App\Infrastructure\Http\Requests\Stock\RecordEntryRequest;
 use App\Infrastructure\Http\Requests\Stock\RecordExitRequest;
 use App\Infrastructure\Http\Requests\Stock\TransferStockRequest;
+use App\Domain\Stock\StockMovement;
 use App\Infrastructure\Http\Resources\Stock\StockBalanceResource;
 use App\Infrastructure\Http\Resources\Stock\StockMovementResource;
 use App\Infrastructure\Http\Resources\Stock\TransferStockResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Gate;
 
 class StockController extends Controller
 {
@@ -35,6 +37,8 @@ class StockController extends Controller
 
     public function entry(RecordEntryRequest $request): JsonResponse
     {
+        Gate::authorize('record', StockMovement::class);
+
         $movement = $this->recordEntry->execute(new RecordEntryDTO(
             variantId: $request->input('variant_id'),
             quantity:  $request->input('quantity'),
@@ -48,6 +52,8 @@ class StockController extends Controller
 
     public function exit(RecordExitRequest $request): JsonResponse
     {
+        Gate::authorize('record', StockMovement::class);
+
         $movement = $this->recordExit->execute(new RecordExitDTO(
             variantId: $request->input('variant_id'),
             quantity:  $request->input('quantity'),
@@ -61,6 +67,8 @@ class StockController extends Controller
 
     public function cancel(CancelMovementRequest $request, string $id): JsonResponse
     {
+        Gate::authorize('cancel', StockMovement::class);
+
         $reversal = $this->cancelMovement->execute($id, $request->input('reason'));
 
         return (new StockMovementResource($reversal))
@@ -70,16 +78,21 @@ class StockController extends Controller
 
     public function balance(string $variantId): StockBalanceResource
     {
+        Gate::authorize('viewBalance', StockMovement::class);
+
         return new StockBalanceResource($this->queryBalance->execute($variantId));
     }
 
     public function movements(string $variantId): AnonymousResourceCollection
     {
+        Gate::authorize('viewMovements', StockMovement::class);
+
         return StockMovementResource::collection($this->listMovements->execute($variantId));
     }
 
     public function transfer(TransferStockRequest $request): JsonResponse
     {
+        Gate::authorize('transfer', StockMovement::class);
         $result = $this->transferStock->execute(new TransferStockDTO(
             fromVariantId: $request->input('from_variant_id'),
             toVariantId:   $request->input('to_variant_id'),

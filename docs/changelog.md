@@ -1,5 +1,53 @@
 # Changelog
 
+## [1.1.0] - 2026-04-23
+
+### Added
+- Tela de login (`GET /login`) com layout `guest.blade.php` sem sidebar, card centralizado com Tailwind CSS
+- `resources/js/auth/token-store.js` — adapter SRP para token no `localStorage`
+- `resources/js/auth/user-store.js` — adapter SRP para dados do usuário no `localStorage`
+- `resources/js/api/auth-api.js` — port de chamadas de autenticação (login/logout), seguindo o padrão de `product-api.js`
+- `resources/js/components/auth-login.js` — Alpine.js; guard redireciona usuário já logado para `/products`
+- `resources/js/components/app-header.js` — Alpine.js; exibe nome/role do usuário e botão logout; guard redireciona não autenticados para `/login`
+- `UserSeeder` — cria 3 usuários de exemplo com roles distintos via `UserRepositoryPort` + `PasswordHasherPort`; idempotente
+
+### Changed
+- `http-client.js` — injeta `Authorization: Bearer <token>` em toda requisição; resposta `401` limpa storage e redireciona para `/login`
+- `layouts/app.blade.php` — header recebe componente `appHeader` com nome, label de role e botão de logout
+- `app.js` — registra os novos componentes `authLogin` e `appHeader`
+- `routes/web.php` — rota `GET /login` adicionada
+- `DatabaseSeeder` — inclui `UserSeeder` antes de `ProductSeeder`
+
+---
+
+## [1.0.0] - 2026-04-23
+
+### Added
+- Aggregate `User` em `Domain/User/` com `UserRole` enum (`admin`, `operator`, `viewer`); `id` auto-increment com `assignId()` chamado exclusivamente pelo repositório após INSERT
+- Ports: `UserRepositoryPort` e `UserTokenPort` em `Domain/User/Ports/`; `PasswordHasherPort` em `Domain/Shared/Ports/`
+- Exceções de domínio: `UserAlreadyExistsException` (409), `InvalidCredentialsException` (401), `UserNotFoundException` (404)
+- Use cases: `RegisterUserUseCase`, `AuthenticateUserUseCase`, `RevokeTokenUseCase`, `UpdateUserRoleUseCase` em `Application/Auth/`; cada um com DTO e Result próprios
+- `UserModel` em `Infrastructure/Persistence/Eloquent/Models/` com `HasApiTokens` (Sanctum)
+- `EloquentUserRepository` — `save()` faz INSERT quando `id === null` e chama `assignId()` no aggregate; UPDATE caso contrário
+- `SanctumTokenAdapter` — implementa `UserTokenPort` com `createToken` e `revokeAllTokens`
+- `BcryptPasswordHasher` — implementa `PasswordHasherPort` com `Hash::make()` e `Hash::check()`
+- Policies: `ProductPolicy`, `StockPolicy`, `UserPolicy` em `Infrastructure/Http/Policies/`
+- `AuthController` (register, login, logout) e `UserController` (updateRole) em `Infrastructure/Http/Controllers/Auth/`
+- Endpoints: `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `PUT /users/{id}/role`
+- Todas as rotas existentes protegidas com middleware `auth:sanctum`
+- `Gate::authorize()` em cada action dos controllers existentes — sem lógica de role nos controllers
+- Migration `2026_04_23_000000_add_role_to_users_table` — coluna `role` com default `operator`
+- Handlers de exceção em `bootstrap/app.php`: `AuthenticationException` (401), `AuthorizationException` (403), `UserAlreadyExistsException` (409), `InvalidCredentialsException` (401), `UserNotFoundException` (404)
+- Policies registradas via `Gate::policy(DomainClass::class, Policy::class)` no `AppServiceProvider`
+- `config/auth.php` aponta para `UserModel`
+
+### Changed
+- `DomainServiceProvider` — 3 novos bindings: `UserRepositoryPort`, `UserTokenPort`, `PasswordHasherPort`
+- `AppServiceProvider` — registro das 3 policies e `statefulApi()` no middleware
+- `routes/api.php` — todas as rotas envolvidas em grupo `auth:sanctum`
+
+---
+
 ## [0.6.0] - 2026-04-22
 
 ### Added
