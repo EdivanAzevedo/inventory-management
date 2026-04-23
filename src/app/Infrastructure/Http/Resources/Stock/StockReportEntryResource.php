@@ -2,7 +2,7 @@
 
 namespace App\Infrastructure\Http\Resources\Stock;
 
-use App\Domain\Stock\StockReportEntry;
+use App\Application\Stock\GenerateStockReport\StockReportEntry;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 

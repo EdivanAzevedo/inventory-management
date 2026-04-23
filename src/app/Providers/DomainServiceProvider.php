@@ -4,16 +4,18 @@ namespace App\Providers;
 
 use App\Domain\Product\Ports\ProductRepositoryPort;
 use App\Domain\Product\Ports\ProductVariantRepositoryPort;
+use App\Domain\Shared\Ports\ClockPort;
 use App\Domain\Shared\Ports\EventDispatcherPort;
 use App\Domain\Shared\Ports\IdGeneratorPort;
 use App\Domain\Shared\Ports\NotificationPort;
 use App\Domain\Shared\Ports\TransactionPort;
 use App\Domain\Stock\Ports\StockBalanceRepositoryPort;
 use App\Domain\Stock\Ports\StockMovementRepositoryPort;
-use App\Domain\Stock\Ports\StockReportRepositoryPort;
+use App\Application\Stock\GenerateStockReport\StockReportRepositoryPort;
 use App\Infrastructure\Events\LaravelEventDispatcherAdapter;
 use App\Infrastructure\Identity\UuidV4Generator;
 use App\Infrastructure\Notification\LogNotificationAdapter;
+use App\Infrastructure\Time\SystemClock;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentProductRepository;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentProductVariantRepository;
 use App\Infrastructure\Persistence\Eloquent\Repositories\EloquentStockBalanceRepository;
@@ -26,6 +28,7 @@ class DomainServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->bind(ClockPort::class, SystemClock::class);
         $this->app->bind(IdGeneratorPort::class, UuidV4Generator::class);
         $this->app->bind(NotificationPort::class, LogNotificationAdapter::class);
         $this->app->bind(EventDispatcherPort::class, LaravelEventDispatcherAdapter::class);

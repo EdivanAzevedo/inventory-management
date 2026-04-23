@@ -4,6 +4,7 @@ namespace App\Application\Stock\RecordEntry;
 
 use App\Domain\Product\Exceptions\VariantNotFoundException;
 use App\Domain\Product\Ports\ProductVariantRepositoryPort;
+use App\Domain\Shared\Ports\ClockPort;
 use App\Domain\Shared\Ports\EventDispatcherPort;
 use App\Domain\Shared\Ports\IdGeneratorPort;
 use App\Domain\Stock\Ports\StockMovementRepositoryPort;
@@ -17,6 +18,7 @@ class RecordEntryUseCase
         private ProductVariantRepositoryPort $variants,
         private IdGeneratorPort              $ids,
         private EventDispatcherPort          $dispatcher,
+        private ClockPort                    $clock,
     ) {}
 
     public function execute(RecordEntryDTO $dto): StockMovement
@@ -31,6 +33,7 @@ class RecordEntryUseCase
             id:        $this->ids->generate(),
             variantId: $variantId,
             quantity:  $dto->quantity,
+            createdAt: $this->clock->now(),
             reason:    $dto->reason,
         );
 

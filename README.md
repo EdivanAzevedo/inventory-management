@@ -32,6 +32,15 @@ composer run dev              # sobe Laravel :8000, Vite :5173, queue worker e l
 - [Banco de dados](docs/database.md)
 - [Changelog](docs/changelog.md)
 
+## Roadmap
+
+| Fase | Status | Escopo |
+|---|---|---|
+| MVP | ✅ Concluído | CRUD de produtos, entradas/saídas, estorno, alerta de mínimo, relatório |
+| Fase 1 — Dívida técnica | ✅ Concluído | ClockPort, invariantes de domínio, read models na Application, ShouldQueue na Infrastructure |
+| Fase 2 — Casos de uso | 🔜 Pendente | `TransferStock` · `AddProductVariant` · `RemoveProductVariant` |
+| Fase 3 — Auth | 🔜 Pendente | Laravel Sanctum, roles admin/operator/viewer, Policies |
+
 ## Licença
 
 MIT

@@ -5,6 +5,7 @@ namespace App\Application\Stock\RecordExit;
 use App\Application\Stock\Shared\MinimumStockChecker;
 use App\Domain\Product\Exceptions\VariantNotFoundException;
 use App\Domain\Product\Ports\ProductVariantRepositoryPort;
+use App\Domain\Shared\Ports\ClockPort;
 use App\Domain\Shared\Ports\EventDispatcherPort;
 use App\Domain\Shared\Ports\IdGeneratorPort;
 use App\Domain\Shared\Ports\TransactionPort;
@@ -23,6 +24,7 @@ class RecordExitUseCase
         private EventDispatcherPort          $dispatcher,
         private MinimumStockChecker          $minimumStockChecker,
         private TransactionPort              $transaction,
+        private ClockPort                    $clock,
     ) {}
 
     public function execute(RecordExitDTO $dto): StockMovement
@@ -40,6 +42,7 @@ class RecordExitUseCase
                 variantId:      $variantId,
                 quantity:       $dto->quantity,
                 currentBalance: $balance->getQuantity(),
+                createdAt:      $this->clock->now(),
                 reason:         $dto->reason,
             );
 

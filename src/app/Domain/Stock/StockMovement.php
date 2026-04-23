@@ -31,9 +31,10 @@ class StockMovement
         UuidInterface $id,
         UuidInterface $variantId,
         int $quantity,
+        DateTimeImmutable $createdAt,
         ?string $reason = null,
     ): self {
-        $movement = new self($id, $variantId, MovementType::ENTRY, $quantity, $reason, null, new DateTimeImmutable());
+        $movement = new self($id, $variantId, MovementType::ENTRY, $quantity, $reason, null, $createdAt);
         $movement->domainEvents[] = new StockMovementRegistered($id, $variantId);
 
         return $movement;
@@ -44,6 +45,7 @@ class StockMovement
         UuidInterface $variantId,
         int $quantity,
         int $currentBalance,
+        DateTimeImmutable $createdAt,
         ?string $reason = null,
     ): self {
         if ($currentBalance < $quantity) {
@@ -52,7 +54,7 @@ class StockMovement
             );
         }
 
-        $movement = new self($id, $variantId, MovementType::EXIT, $quantity, $reason, null, new DateTimeImmutable());
+        $movement = new self($id, $variantId, MovementType::EXIT, $quantity, $reason, null, $createdAt);
         $movement->domainEvents[] = new StockMovementRegistered($id, $variantId);
 
         return $movement;
@@ -62,6 +64,7 @@ class StockMovement
         UuidInterface $id,
         StockMovement $original,
         int $currentBalance,
+        DateTimeImmutable $createdAt,
         ?string $reason = null,
     ): self {
         if ($original->getType() === MovementType::REVERSAL) {
@@ -82,7 +85,7 @@ class StockMovement
             quantity:             $original->getQuantity(),
             reason:               $reason,
             referencedMovementId: $original->getId(),
-            createdAt:            new DateTimeImmutable(),
+            createdAt:            $createdAt,
         );
 
         $movement->domainEvents[] = new StockMovementReversed($id, $original->getId(), $original->getVariantId());

@@ -2,8 +2,6 @@
 
 namespace App\Application\Stock\GenerateStockReport;
 
-use App\Domain\Stock\Ports\StockReportRepositoryPort;
-use App\Domain\Stock\StockReport;
 use DateTimeImmutable;
 use InvalidArgumentException;
 

@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Domain\Stock\Ports;
+namespace App\Application\Stock\GenerateStockReport;
 
-use App\Domain\Stock\StockReport;
 use DateTimeImmutable;
 
 interface StockReportRepositoryPort

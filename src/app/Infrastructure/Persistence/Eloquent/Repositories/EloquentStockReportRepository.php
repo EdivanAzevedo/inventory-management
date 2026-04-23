@@ -2,9 +2,10 @@
 
 namespace App\Infrastructure\Persistence\Eloquent\Repositories;
 
-use App\Domain\Stock\Ports\StockReportRepositoryPort;
-use App\Domain\Stock\StockReport;
-use App\Domain\Stock\StockReportEntry;
+use App\Application\Stock\GenerateStockReport\StockReport;
+use App\Application\Stock\GenerateStockReport\StockReportEntry;
+use App\Application\Stock\GenerateStockReport\StockReportRepositoryPort;
+use App\Domain\Stock\MovementType;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -16,8 +17,11 @@ class EloquentStockReportRepository implements StockReportRepositoryPort
         ?string $productId   = null,
         ?string $productType = null,
     ): StockReport {
-        $start = $startDate->format('Y-m-d') . ' 00:00:00';
-        $end   = $endDate->format('Y-m-d') . ' 23:59:59';
+        $start    = $startDate->format('Y-m-d') . ' 00:00:00';
+        $end      = $endDate->format('Y-m-d') . ' 23:59:59';
+        $entry    = MovementType::ENTRY->value;
+        $exit     = MovementType::EXIT->value;
+        $reversal = MovementType::REVERSAL->value;
 
         $sql = "
             SELECT
@@ -29,15 +33,15 @@ class EloquentStockReportRepository implements StockReportRepositoryPort
                 pv.color,
                 pv.size,
                 pv.unit,
-                COALESCE(SUM(CASE WHEN sm.type = 'ENTRY' AND sm.created_at BETWEEN ? AND ? THEN sm.quantity ELSE 0 END), 0) AS total_entries,
-                COALESCE(SUM(CASE WHEN sm.type = 'EXIT'  AND sm.created_at BETWEEN ? AND ? THEN sm.quantity ELSE 0 END), 0) AS total_exits,
+                COALESCE(SUM(CASE WHEN sm.type = '$entry' AND sm.created_at BETWEEN ? AND ? THEN sm.quantity ELSE 0 END), 0) AS total_entries,
+                COALESCE(SUM(CASE WHEN sm.type = '$exit'  AND sm.created_at BETWEEN ? AND ? THEN sm.quantity ELSE 0 END), 0) AS total_exits,
                 COALESCE(SUM(
                     CASE WHEN sm.created_at <= ? THEN
                         CASE
-                            WHEN sm.type = 'ENTRY'    THEN  sm.quantity
-                            WHEN sm.type = 'EXIT'     THEN -sm.quantity
-                            WHEN sm.type = 'REVERSAL' THEN
-                                CASE WHEN orig.type = 'ENTRY' THEN -sm.quantity ELSE sm.quantity END
+                            WHEN sm.type = '$entry'    THEN  sm.quantity
+                            WHEN sm.type = '$exit'     THEN -sm.quantity
+                            WHEN sm.type = '$reversal' THEN
+                                CASE WHEN orig.type = '$entry' THEN -sm.quantity ELSE sm.quantity END
                             ELSE 0
                         END
                     ELSE 0 END

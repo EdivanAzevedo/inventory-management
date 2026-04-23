@@ -3,6 +3,7 @@
 namespace App\Application\Stock\CancelMovement;
 
 use App\Application\Stock\Shared\MinimumStockChecker;
+use App\Domain\Shared\Ports\ClockPort;
 use App\Domain\Shared\Ports\EventDispatcherPort;
 use App\Domain\Shared\Ports\IdGeneratorPort;
 use App\Domain\Shared\Ports\TransactionPort;
@@ -23,6 +24,7 @@ class CancelMovementUseCase
         private EventDispatcherPort         $dispatcher,
         private MinimumStockChecker         $minimumStockChecker,
         private TransactionPort             $transaction,
+        private ClockPort                   $clock,
     ) {}
 
     public function execute(string $movementId, ?string $reason = null): StockMovement
@@ -43,6 +45,7 @@ class CancelMovementUseCase
                 id:             $this->ids->generate(),
                 original:       $original,
                 currentBalance: $balance->getQuantity(),
+                createdAt:      $this->clock->now(),
                 reason:         $reason,
             );
 

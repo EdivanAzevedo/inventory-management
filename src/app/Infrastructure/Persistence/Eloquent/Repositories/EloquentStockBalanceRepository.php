@@ -2,6 +2,7 @@
 
 namespace App\Infrastructure\Persistence\Eloquent\Repositories;
 
+use App\Domain\Stock\MovementType;
 use App\Domain\Stock\Ports\StockBalanceRepositoryPort;
 use App\Domain\Stock\StockBalance;
 use Illuminate\Support\Facades\DB;
@@ -28,13 +29,17 @@ class EloquentStockBalanceRepository implements StockBalanceRepositoryPort
 
     private function calculateBalance(UuidInterface $variantId): StockBalance
     {
+        $entry    = MovementType::ENTRY->value;
+        $exit     = MovementType::EXIT->value;
+        $reversal = MovementType::REVERSAL->value;
+
         $result = DB::selectOne(
             "SELECT COALESCE(SUM(
                 CASE
-                    WHEN sm.type = 'ENTRY' THEN sm.quantity
-                    WHEN sm.type = 'EXIT'  THEN -sm.quantity
-                    WHEN sm.type = 'REVERSAL' THEN
-                        CASE WHEN orig.type = 'ENTRY' THEN -sm.quantity
+                    WHEN sm.type = '$entry'    THEN  sm.quantity
+                    WHEN sm.type = '$exit'     THEN -sm.quantity
+                    WHEN sm.type = '$reversal' THEN
+                        CASE WHEN orig.type = '$entry' THEN -sm.quantity
                              ELSE sm.quantity END
                 END
             ), 0) AS balance

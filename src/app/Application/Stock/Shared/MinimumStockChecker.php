@@ -18,7 +18,7 @@ final class MinimumStockChecker
     {
         $variant = $this->variants->findById($variantId);
 
-        if ($variant && $newBalance < $variant->getMinimumStock()) {
+        if ($variant && $variant->isBelowMinimum($newBalance)) {
             $this->dispatcher->dispatch(new StockBelowMinimumDetected(
                 variantId:      $variantId,
                 currentBalance: $newBalance,

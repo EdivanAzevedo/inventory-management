@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Domain\Stock;
+namespace App\Application\Stock\GenerateStockReport;
 
 class StockReportEntry
 {

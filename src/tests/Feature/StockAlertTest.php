@@ -2,8 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Application\Stock\CheckMinimumStock\CheckMinimumStockHandler;
 use App\Application\Stock\CancelMovement\CancelMovementUseCase;
+use App\Application\Stock\CheckMinimumStock\CheckMinimumStockHandler;
+use App\Infrastructure\Events\Listeners\QueuedStockAlertListener;
 use App\Application\Stock\RecordEntry\RecordEntryDTO;
 use App\Application\Stock\RecordEntry\RecordEntryUseCase;
 use App\Application\Stock\RecordExit\RecordExitDTO;
@@ -88,12 +89,12 @@ class StockAlertTest extends TestCase
         });
     }
 
-    public function test_handler_implements_should_queue_and_targets_correct_queue(): void
+    public function test_listener_implements_should_queue_and_targets_correct_queue(): void
     {
-        $handler = app(CheckMinimumStockHandler::class);
+        $listener = app(QueuedStockAlertListener::class);
 
-        $this->assertInstanceOf(\Illuminate\Contracts\Queue\ShouldQueue::class, $handler);
-        $this->assertSame('stock-alerts', $handler->queue);
+        $this->assertInstanceOf(\Illuminate\Contracts\Queue\ShouldQueue::class, $listener);
+        $this->assertSame('stock-alerts', $listener->queue);
     }
 
     public function test_handler_calls_notification_port(): void
